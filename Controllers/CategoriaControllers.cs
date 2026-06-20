@@ -7,15 +7,31 @@ namespace IS_161_Proyecto_Grupo2.Controllers
 {
     public class CategoriaController : Controller
     {
+        private readonly ICategoriaRepositorio _repoCategoria;
+        private readonly ISubcategoriaRepositorio _repoSubcategoria;
+        private readonly IProductoRepositorio _repoProducto;
+
+        public CategoriaController(
+            ICategoriaRepositorio repoCategoria,
+            ISubcategoriaRepositorio repoSubcategoria,
+            IProductoRepositorio repoProducto)
+        {
+            _repoCategoria = repoCategoria;
+            _repoSubcategoria = repoSubcategoria;
+            _repoProducto = repoProducto;
+        }
+
         public IActionResult Index()
         {
-            foreach (var cat in BaseDatosMemoria.Categorias)
+            var categorias = _repoCategoria.ObtenerTodas();
+
+            foreach (var cat in categorias)
             {
-                cat.Subcategorias = BaseDatosMemoria.Subcategorias
-                    .Where(s => s.IdCategoria == cat.IdCategoria)
-                    .ToList();
+                cat.Subcategorias = _repoSubcategoria
+                    .ObtenerPorCategoria(cat.IdCategoria);
             }
-            return View(BaseDatosMemoria.Categorias);
+
+            return View(categorias);
         }
 
         public IActionResult Create()
@@ -26,68 +42,58 @@ namespace IS_161_Proyecto_Grupo2.Controllers
         [HttpPost]
         public IActionResult Create(Categoria categoria)
         {
-            if (BaseDatosMemoria.Categorias.Any(c =>
+            if (_repoCategoria.ObtenerTodas().Any(c =>
                 c.Nombre.ToLower() == categoria.Nombre.ToLower()))
             {
-                ModelState.AddModelError("Nombre", "Ya existe una categoría con ese nombre.");
+                ModelState.AddModelError("Nombre",
+                    "Ya existe una categoría con ese nombre.");
             }
 
             if (ModelState.IsValid)
             {
-                categoria.IdCategoria = BaseDatosMemoria.Categorias.Any()
-                    ? BaseDatosMemoria.Categorias.Max(c => c.IdCategoria) + 1
-                    : 1;
-
-                BaseDatosMemoria.Categorias.Add(categoria);
+                _repoCategoria.Insertar(categoria);
                 TempData["Success"] = "Categoría creada correctamente.";
                 return RedirectToAction("Index");
             }
+
             return View(categoria);
         }
 
         public IActionResult Edit(int id)
         {
-            var categoria = BaseDatosMemoria.Categorias
-                .FirstOrDefault(c => c.IdCategoria == id);
+            var categoria = _repoCategoria.ObtenerPorId(id);
             if (categoria == null) return RedirectToAction("Index");
 
-            categoria.Subcategorias = BaseDatosMemoria.Subcategorias
-                .Where(s => s.IdCategoria == id)
-                .ToList();
+            categoria.Subcategorias = _repoSubcategoria
+                .ObtenerPorCategoria(id);
+
             return View(categoria);
         }
 
         [HttpPost]
         public IActionResult Edit(Categoria categoria)
         {
-            if (BaseDatosMemoria.Categorias.Any(c =>
+            if (_repoCategoria.ObtenerTodas().Any(c =>
                 c.Nombre.ToLower() == categoria.Nombre.ToLower() &&
                 c.IdCategoria != categoria.IdCategoria))
             {
-                ModelState.AddModelError("Nombre", "Ya existe una categoría con ese nombre.");
+                ModelState.AddModelError("Nombre",
+                    "Ya existe una categoría con ese nombre.");
             }
 
             if (ModelState.IsValid)
             {
-                var catExistente = BaseDatosMemoria.Categorias
-                    .FirstOrDefault(c => c.IdCategoria == categoria.IdCategoria);
-
-                if (catExistente != null)
-                {
-                    catExistente.Nombre = categoria.Nombre;
-                    catExistente.Descripcion = categoria.Descripcion;
-                    catExistente.Estado = categoria.Estado;
-                }
+                _repoCategoria.Actualizar(categoria);
                 TempData["Success"] = "Categoría actualizada correctamente.";
                 return RedirectToAction("Index");
             }
+
             return View(categoria);
         }
 
         public IActionResult Delete(int id)
         {
-            var categoria = BaseDatosMemoria.Categorias
-                .FirstOrDefault(c => c.IdCategoria == id);
+            var categoria = _repoCategoria.ObtenerPorId(id);
 
             if (categoria == null)
             {
@@ -95,7 +101,8 @@ namespace IS_161_Proyecto_Grupo2.Controllers
                 return RedirectToAction("Index");
             }
 
-            bool tieneSubcategoriasActivas = BaseDatosMemoria.Subcategorias
+            bool tieneSubcategoriasActivas = _repoSubcategoria
+                .ObtenerTodas()
                 .Any(s => s.IdCategoria == id && s.Estado);
 
             if (tieneSubcategoriasActivas)
@@ -104,7 +111,8 @@ namespace IS_161_Proyecto_Grupo2.Controllers
                 return RedirectToAction("Index");
             }
 
-            bool tieneProductosActivos = BaseDatosMemoria.Productos
+            bool tieneProductosActivos = _repoProducto
+                .ObtenerTodos()
                 .Any(p => p.IdCategoria == id && p.Estado);
 
             if (tieneProductosActivos)
@@ -113,7 +121,7 @@ namespace IS_161_Proyecto_Grupo2.Controllers
                 return RedirectToAction("Index");
             }
 
-            categoria.Estado = false;
+            _repoCategoria.Eliminar(id);
             TempData["Success"] = "Categoría desactivada correctamente.";
             return RedirectToAction("Index");
         }

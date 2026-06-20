@@ -71,9 +71,7 @@
     <div class="col-md-3">
         <div class="card border-primary text-center">
             <div class="card-body">
-                <h5 class="text-primary">
-                    <i class="bi bi-box-seam me-1"></i>Total
-                </h5>
+                <h5 class="text-primary"><i class="bi bi-box-seam me-1"></i>Total</h5>
                 <h3>@productos.Count</h3>
             </div>
         </div>
@@ -81,9 +79,7 @@
     <div class="col-md-3">
         <div class="card border-success text-center">
             <div class="card-body">
-                <h5 class="text-success">
-                    <i class="bi bi-check-circle me-1"></i>Activos
-                </h5>
+                <h5 class="text-success"><i class="bi bi-check-circle me-1"></i>Activos</h5>
                 <h3>@productos.Count(p => p.Estado)</h3>
             </div>
         </div>
@@ -91,9 +87,7 @@
     <div class="col-md-3">
         <div class="card border-secondary text-center">
             <div class="card-body">
-                <h5 class="text-secondary">
-                    <i class="bi bi-x-circle me-1"></i>Inactivos
-                </h5>
+                <h5 class="text-secondary"><i class="bi bi-x-circle me-1"></i>Inactivos</h5>
                 <h3>@productos.Count(p => !p.Estado)</h3>
             </div>
         </div>
@@ -101,9 +95,7 @@
     <div class="col-md-3">
         <div class="card border-danger text-center">
             <div class="card-body">
-                <h5 class="text-danger">
-                    <i class="bi bi-exclamation-triangle me-1"></i>Bajo Stock
-                </h5>
+                <h5 class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Bajo Stock</h5>
                 <h3>@(productosBajoStock?.Count ?? 0)</h3>
             </div>
         </div>
@@ -120,7 +112,17 @@
         }
         else
         {
-            <table class="table table-bordered table-hover align-middle text-center">
+            <div class="d-flex justify-content-end gap-2 mb-3">
+                <button onclick="exportarExcel()" class="btn btn-success">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
+                </button>
+                <button onclick="exportarPDF()" class="btn btn-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+                </button>
+            </div>
+
+            <table class="table table-bordered table-hover align-middle text-center"
+                   id="tablaProductos">
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>
@@ -142,9 +144,7 @@
                         <tr class="@(!item.Estado ? "table-secondary" :
                                                                   item.BajoStock() ? "table-warning" : "")">
                     <td>@item.IdProducto</td>
-                    <td>
-                        <small class="text-muted">@item.CodigoProducto</small>
-                    </td>
+                    <td><small class="text-muted">@item.CodigoProducto</small></td>
                     <td class="text-start">@item.NombreProducto</td>
                     <td>@item.NombreCategoria</td>
                     <td>@item.NombreSubcategoria</td>
@@ -154,24 +154,15 @@
                     <td>
                         @if (item.BajoStock())
                                 {
-                                    <span class="badge bg-danger"
-                                          title="Mínimo: @(item.StockMinimo)">
-                                        <i class="bi bi-exclamation-triangle me-1"></i>
-                                        @item.StockTotal()
-                                    </span>
+                                    <span class="badge bg-danger">@item.StockTotal()</span>
                                 }
                                 else if (item.StockTotal() == 0)
                                 {
-
-                                    <span class="badge bg-warning text-dark">
-                                        <i class="bi bi-dash-circle me-1"></i>Sin stock
-                                    </span>
+                                    <span class="badge bg-warning text-dark">Sin stock</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-success">
-                                        @item.StockTotal()
-                                    </span>
+                                    <span class="badge bg-success">@item.StockTotal()</span>
                                 }
                             </td>
                             <td>@item.StockMinimo</td>
@@ -195,9 +186,7 @@
                     <table class="table table-borderless text-end">
                         <tr class="table-dark">
                             <td class="fw-bold">Stock total en inventario:</td>
-                            <td class="fw-bold">
-                                @productos.Sum(p => p.StockTotal()) unidades
-                            </td>
+                            <td class="fw-bold">@productos.Sum(p => p.StockTotal()) unidades</td>
                         </tr>
                     </table>
                 </div>
@@ -205,3 +194,56 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script>
+
+        function exportarExcel() {
+            const tabla   = document.getElementById('tablaProductos');
+            const wb      = XLSX.utils.book_new();
+            const ws      = XLSX.utils.table_to_sheet(tabla);
+            XLSX.utils.book_append_sheet(wb, ws, 'Productos');
+            XLSX.writeFile(wb, 'Reporte_Productos.xlsx');
+        }
+
+        function exportarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape', 'mm', 'a4');
+
+            doc.setFontSize(16);
+            doc.text('Reporte de Productos - MercaditoUPH', 14, 15);
+            doc.setFontSize(10);
+            doc.text(`Generado: ${new Date().toLocaleDateString('es-HN')}`, 14, 22);
+
+            const tabla    = document.getElementById('tablaProductos');
+            const headers  = [];
+            const rows     = [];
+
+            tabla.querySelectorAll('thead tr th').forEach(th => {
+                headers.push(th.innerText.trim());
+            });
+
+            tabla.querySelectorAll('tbody tr').forEach(tr => {
+                const fila = [];
+                tr.querySelectorAll('td').forEach(td => {
+                    fila.push(td.innerText.trim());
+                });
+                rows.push(fila);
+            });
+
+            doc.autoTable({
+                head:       [headers],
+                body:       rows,
+                startY:     28,
+                styles:     { fontSize: 8, cellPadding: 2 },
+                headStyles: { fillColor: [33, 37, 41], textColor: 255 },
+                alternateRowStyles: { fillColor: [245, 245, 245] }
+            });
+
+            doc.save('Reporte_Productos.pdf');
+        }
+    </script>
+}

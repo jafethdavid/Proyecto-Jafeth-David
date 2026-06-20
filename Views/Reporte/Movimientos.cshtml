@@ -21,13 +21,13 @@
         lista = lista.Where(m => m.FechaMovimiento <= hasta.AddDays(1));
 
     var movimientos = lista.ToList();
-
     var totalEntradas = movimientos
         .Where(m => m.TipoMovimiento == EnumTipoMovimiento.Entrada)
         .Sum(m => m.CantidadDisponible);
     var totalSalidas = movimientos
         .Where(m => m.TipoMovimiento == EnumTipoMovimiento.Salida)
         .Sum(m => m.CantidadDisponible);
+    int balance = totalEntradas - totalSalidas;
 }
 
 <h2 class="mb-4">
@@ -47,20 +47,17 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-bold">Desde</label>
-                <input type="date" name="desde" class="form-control"
-                       value="@desdeFiltro" />
+                <input type="date" name="desde" class="form-control" value="@desdeFiltro" />
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-bold">Hasta</label>
-                <input type="date" name="hasta" class="form-control"
-                       value="@hastaFiltro" />
+                <input type="date" name="hasta" class="form-control" value="@hastaFiltro" />
             </div>
             <div class="col-md-3">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-search me-1"></i>Filtrar
                 </button>
-                <a href="/Reporte/Movimientos"
-                   class="btn btn-outline-secondary w-100 mt-1">
+                <a href="/Reporte/Movimientos" class="btn btn-outline-secondary w-100 mt-1">
                     <i class="bi bi-x-circle me-1"></i>Limpiar
                 </a>
             </div>
@@ -72,11 +69,8 @@
     <div class="col-md-3">
         <div class="card border-success text-center">
             <div class="card-body">
-                <h5 class="text-success">
-                    <i class="bi bi-arrow-down-circle me-1"></i>Entradas
-                </h5>
+                <h5 class="text-success"><i class="bi bi-arrow-down-circle me-1"></i>Entradas</h5>
                 <h3>@movimientos.Count(m => m.TipoMovimiento == EnumTipoMovimiento.Entrada)</h3>
-
                 <small class="text-muted">@totalEntradas unidades</small>
             </div>
         </div>
@@ -84,11 +78,8 @@
     <div class="col-md-3">
         <div class="card border-danger text-center">
             <div class="card-body">
-                <h5 class="text-danger">
-                    <i class="bi bi-arrow-up-circle me-1"></i>Salidas
-                </h5>
+                <h5 class="text-danger"><i class="bi bi-arrow-up-circle me-1"></i>Salidas</h5>
                 <h3>@movimientos.Count(m => m.TipoMovimiento == EnumTipoMovimiento.Salida)</h3>
-
                 <small class="text-muted">@totalSalidas unidades</small>
             </div>
         </div>
@@ -96,23 +87,15 @@
     <div class="col-md-3">
         <div class="card border-primary text-center">
             <div class="card-body">
-                <h5 class="text-primary">
-                    <i class="bi bi-list-ul me-1"></i>Total Movimientos
-                </h5>
+                <h5 class="text-primary"><i class="bi bi-list-ul me-1"></i>Total Movimientos</h5>
                 <h3>@movimientos.Count</h3>
             </div>
         </div>
     </div>
-
     <div class="col-md-3">
         <div class="card border-info text-center">
             <div class="card-body">
-                <h5 class="text-info">
-                    <i class="bi bi-calculator me-1"></i>Balance Neto
-                </h5>
-                @{
-                    int balance = totalEntradas - totalSalidas;
-                }
+                <h5 class="text-info"><i class="bi bi-calculator me-1"></i>Balance Neto</h5>
                 <h3 class="@(balance >= 0 ? "text-success" : "text-danger")">
                     @(balance >= 0 ? "+" : "")@balance
                 </h3>
@@ -132,7 +115,17 @@
         }
         else
         {
-            <table class="table table-bordered table-hover align-middle text-center">
+            <div class="d-flex justify-content-end gap-2 mb-3">
+                <button onclick="exportarExcel()" class="btn btn-success">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
+                </button>
+                <button onclick="exportarPDF()" class="btn btn-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+                </button>
+            </div>
+
+            <table class="table table-bordered table-hover align-middle text-center"
+                   id="tablaMovimientos">
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>
@@ -164,9 +157,7 @@
                                     </span>
                                 }
                             </td>
-                            <td class="text-start">
-                                @(item.NombreProducto ?? "—")
-                            </td>
+                            <td class="text-start">@(item.NombreProducto ?? "—")</td>
                             <td>
                                 @if (!string.IsNullOrEmpty(item.CodigoLote))
                                 {
@@ -178,18 +169,13 @@
                                 }
                             </td>
                             <td>
-
                                 @if (item.TipoMovimiento == EnumTipoMovimiento.Entrada)
                                 {
-                                    <span class="text-success fw-bold">
-                                        +@item.CantidadDisponible
-                                    </span>
+                                    <span class="text-success fw-bold">+@item.CantidadDisponible</span>
                                 }
                                 else
                                 {
-                                    <span class="text-danger fw-bold">
-                                        -@item.CantidadDisponible
-                                    </span>
+                                    <span class="text-danger fw-bold">-@item.CantidadDisponible</span>
                                 }
                             </td>
                         </tr>
@@ -202,29 +188,77 @@
                     <table class="table table-borderless text-end">
                         <tr>
                             <td class="text-success fw-bold">
-                                <i class="bi bi-arrow-down-circle me-1"></i>
-                                Total unidades ingresadas:
+                                <i class="bi bi-arrow-down-circle me-1"></i>Total ingresadas:
                             </td>
                             <td class="text-success fw-bold">+@totalEntradas</td>
                         </tr>
                         <tr>
                             <td class="text-danger fw-bold">
-                                <i class="bi bi-arrow-up-circle me-1"></i>
-                                Total unidades salidas:
+                                <i class="bi bi-arrow-up-circle me-1"></i>Total salidas:
                             </td>
                             <td class="text-danger fw-bold">-@totalSalidas</td>
                         </tr>
                         <tr class="table-dark">
                             <td class="fw-bold">Balance neto:</td>
-                            <td class="fw-bold @(totalEntradas - totalSalidas >= 0
-                                                                                    ? "text-success" : "text-danger")">
-                            @(totalEntradas - totalSalidas >= 0 ? "+" : "")
-                            @(totalEntradas - totalSalidas)
-                        </td>
-                    </tr>
-                </table>
+                            <td class="fw-bold @(balance >= 0 ? "text-success" : "text-danger")">
+                                @(balance >= 0 ? "+" : "")@balance
+                            </td>
+                        </tr>
+                    </table>
+                </div>
             </div>
-        </div>
-                }
+        }
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        function exportarExcel() {
+            const tabla = document.getElementById('tablaMovimientos');
+            const wb    = XLSX.utils.book_new();
+            const ws    = XLSX.utils.table_to_sheet(tabla);
+            XLSX.utils.book_append_sheet(wb, ws, 'Movimientos');
+            XLSX.writeFile(wb, 'Reporte_Movimientos.xlsx');
+        }
+
+        function exportarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape', 'mm', 'a4');
+
+            doc.setFontSize(16);
+            doc.text('Reporte de Movimientos - MercaditoUPH', 14, 15);
+            doc.setFontSize(10);
+            doc.text(`Generado: ${new Date().toLocaleDateString('es-HN')}`, 14, 22);
+
+            const tabla   = document.getElementById('tablaMovimientos');
+            const headers = [];
+            const rows    = [];
+
+            tabla.querySelectorAll('thead tr th').forEach(th => {
+                headers.push(th.innerText.trim());
+            });
+
+            tabla.querySelectorAll('tbody tr').forEach(tr => {
+                const fila = [];
+                tr.querySelectorAll('td').forEach(td => {
+                    fila.push(td.innerText.trim());
+                });
+                rows.push(fila);
+            });
+
+            doc.autoTable({
+                head:       [headers],
+                body:       rows,
+                startY:     28,
+                styles:     { fontSize: 8, cellPadding: 2 },
+                headStyles: { fillColor: [33, 37, 41], textColor: 255 },
+                alternateRowStyles: { fillColor: [245, 245, 245] }
+            });
+
+            doc.save('Reporte_Movimientos.pdf');
+        }
+    </script>
+}

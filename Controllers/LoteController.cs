@@ -9,32 +9,36 @@ namespace IS_161_Proyecto_Grupo2.Controllers
 {
     public class LoteController : Controller
     {
-        private readonly ServicioInventario servicio = new ServicioInventario();
+        private readonly ILoteRepositorio _repoLote;
+        private readonly IProductoRepositorio _repoProducto;
+        private readonly IMovimientoRepositorio _repoMovimiento;
+
+        public LoteController(
+            ILoteRepositorio repoLote,
+            IProductoRepositorio repoProducto,
+            IMovimientoRepositorio repoMovimiento)
+        {
+            _repoLote = repoLote;
+            _repoProducto = repoProducto;
+            _repoMovimiento = repoMovimiento;
+        }
 
         public IActionResult Index(int? idProducto)
         {
-            var lotes = idProducto.HasValue
-                ? BaseDatosMemoria.Lotes.Where(l => l.IdProducto == idProducto).ToList()
-                : BaseDatosMemoria.Lotes.ToList();
 
-            foreach (var lote in lotes)
-            {
-                var prod = BaseDatosMemoria.Productos
-                    .FirstOrDefault(p => p.IdProducto == lote.IdProducto);
-                lote.NombreProducto = prod?.NombreProducto;
-            }
+            var lotes = idProducto.HasValue
+                ? _repoLote.ObtenerPorProducto(idProducto.Value)
+                : _repoLote.ObtenerTodos();
 
             ViewBag.IdProductoFiltro = idProducto;
-            ViewBag.Productos = BaseDatosMemoria.Productos
-                .Where(p => p.Estado).ToList();
+            ViewBag.Productos = _repoProducto.ObtenerActivos();
 
             return View(lotes);
         }
 
         public IActionResult Create(int idProducto)
         {
-            var producto = BaseDatosMemoria.Productos
-                .FirstOrDefault(p => p.IdProducto == idProducto);
+            var producto = _repoProducto.ObtenerPorId(idProducto);
 
             if (producto == null)
                 return RedirectToAction("Index", "Producto");
@@ -45,8 +49,7 @@ namespace IS_161_Proyecto_Grupo2.Controllers
                 return RedirectToAction("Index", "Producto");
             }
 
-            int totalLotes = BaseDatosMemoria.Lotes
-                .Count(l => l.IdProducto == idProducto) + 1;
+            int totalLotes = _repoLote.ObtenerPorProducto(idProducto).Count + 1;
 
             string prefijo = producto.NombreProducto.Length >= 3
                 ? producto.NombreProducto.Substring(0, 3).ToUpper()
@@ -63,24 +66,18 @@ namespace IS_161_Proyecto_Grupo2.Controllers
         [HttpPost]
         public IActionResult Create(int idProducto, Lote lote)
         {
-            var producto = BaseDatosMemoria.Productos
-                .FirstOrDefault(p => p.IdProducto == idProducto);
+            var producto = _repoProducto.ObtenerPorId(idProducto);
 
             if (producto == null)
                 return RedirectToAction("Index", "Producto");
 
             if (lote.Cantidad <= 0)
-            {
-                ModelState.AddModelError("Cantidad",
-                    "La cantidad debe ser mayor a 0.");
-            }
+                ModelState.AddModelError("Cantidad", "La cantidad debe ser mayor a 0.");
 
             if (lote.FechaVencimiento.HasValue &&
                 lote.FechaVencimiento.Value.Date <= DateTime.Now.Date)
-            {
                 ModelState.AddModelError("FechaVencimiento",
                     "La fecha de vencimiento debe ser una fecha futura.");
-            }
 
             if (!ModelState.IsValid)
             {
@@ -90,8 +87,7 @@ namespace IS_161_Proyecto_Grupo2.Controllers
                 return View(lote);
             }
 
-            int totalLotes = BaseDatosMemoria.Lotes
-                .Count(l => l.IdProducto == idProducto) + 1;
+            int totalLotes = _repoLote.ObtenerPorProducto(idProducto).Count + 1;
 
             string prefijo = producto.NombreProducto.Length >= 3
                 ? producto.NombreProducto.Substring(0, 3).ToUpper()
@@ -99,25 +95,32 @@ namespace IS_161_Proyecto_Grupo2.Controllers
 
             lote.CodigoLote = $"LOT-{prefijo}-{totalLotes:D3}";
             lote.FechaIngreso = DateTime.Now;
+            lote.IdProducto = idProducto;
+            lote.Estatus = true;
 
-            servicio.RegistrarEntrada(idProducto, lote);
+            _repoLote.Insertar(lote);
+
+            _repoMovimiento.Insertar(new MovimientoInventario(
+                idProducto,
+                lote.IdLote,
+                EnumTipoMovimiento.Entrada,
+                lote.Cantidad
+            ));
+
             TempData["Success"] = $"Lote registrado correctamente para {producto.NombreProducto}.";
             return RedirectToAction("Index", "Producto");
         }
 
         public IActionResult Edit(int id)
         {
-            var lote = BaseDatosMemoria.Lotes
-                .FirstOrDefault(l => l.IdLote == id);
+            var lote = _repoLote.ObtenerPorId(id);
             if (lote == null)
             {
                 TempData["Error"] = "Lote no encontrado.";
                 return RedirectToAction("Index");
             }
 
-            var prod = BaseDatosMemoria.Productos
-                .FirstOrDefault(p => p.IdProducto == lote.IdProducto);
-            ViewBag.NombreProducto = prod?.NombreProducto;
+            ViewBag.NombreProducto = lote.NombreProducto;
             return View(lote);
         }
 
@@ -125,45 +128,28 @@ namespace IS_161_Proyecto_Grupo2.Controllers
         public IActionResult Edit(Lote lote)
         {
             if (lote.Cantidad <= 0)
-            {
-                ModelState.AddModelError("Cantidad",
-                    "La cantidad debe ser mayor a 0.");
-            }
+                ModelState.AddModelError("Cantidad", "La cantidad debe ser mayor a 0.");
 
             if (lote.FechaVencimiento.HasValue &&
                 lote.FechaVencimiento.Value.Date <= DateTime.Now.Date)
-            {
                 ModelState.AddModelError("FechaVencimiento",
                     "La fecha de vencimiento debe ser una fecha futura.");
-            }
 
             if (!ModelState.IsValid)
             {
-                var prod = BaseDatosMemoria.Productos
-                    .FirstOrDefault(p => p.IdProducto == lote.IdProducto);
-                ViewBag.NombreProducto = prod?.NombreProducto;
+                var loteActual = _repoLote.ObtenerPorId(lote.IdLote);
+                ViewBag.NombreProducto = loteActual?.NombreProducto;
                 return View(lote);
             }
 
-            var existente = BaseDatosMemoria.Lotes
-                .FirstOrDefault(l => l.IdLote == lote.IdLote);
-
-            if (existente != null)
-            {
-                existente.FechaVencimiento = lote.FechaVencimiento;
-                existente.Cantidad = lote.Cantidad;
-                existente.Unidades = lote.Unidades;
-                existente.Estatus = lote.Estatus;
-            }
-
+            _repoLote.Actualizar(lote);
             TempData["Success"] = "Lote actualizado correctamente.";
             return RedirectToAction("Index");
         }
 
         public IActionResult Delete(int id)
         {
-            var lote = BaseDatosMemoria.Lotes
-                .FirstOrDefault(l => l.IdLote == id);
+            var lote = _repoLote.ObtenerPorId(id);
 
             if (lote == null)
             {
@@ -178,26 +164,11 @@ namespace IS_161_Proyecto_Grupo2.Controllers
             }
 
             if (lote.Cantidad > 0)
-            {
                 TempData["Warning"] = $"Se desactivó el lote {lote.CodigoLote} con {lote.Cantidad} unidades disponibles. Ese stock ya no estará disponible.";
-            }
             else
-            {
                 TempData["Success"] = "Lote desactivado correctamente.";
-            }
 
-            lote.Estatus = false;
-
-            var producto = BaseDatosMemoria.Productos
-                .FirstOrDefault(p => p.IdProducto == lote.IdProducto);
-            if (producto != null)
-            {
-                var loteEnProducto = producto.Lotes
-                    .FirstOrDefault(l => l.IdLote == lote.IdLote);
-                if (loteEnProducto != null)
-                    loteEnProducto.Estatus = false;
-            }
-
+            _repoLote.Eliminar(id);
             return RedirectToAction("Index");
         }
     }

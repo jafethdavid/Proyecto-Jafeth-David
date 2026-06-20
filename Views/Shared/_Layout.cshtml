@@ -2,116 +2,608 @@
 <html lang="es">
 <head>
     <meta charset="utf-8" />
-    <title>SISTEMA DE VENTAS GRUPO 2</title>
+    <title>MercaditoUPH — Sistema de Ventas</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-          rel="stylesheet" />
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <style>
-        .fondo-sistema {
-            margin-top: 30px;
-            margin-bottom: 40px;
+        * {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background-color: #000000;
+            background-image: radial-gradient(ellipse at 20% 20%, rgba(10, 132, 255, 0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(48, 209, 88, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 60% 10%, rgba(191, 90, 242, 0.08) 0%, transparent 40%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+            color: #f5f5f7;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar-glass {
+            background: rgba(28, 28, 30, 0.75) !important;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 12px 0;
+        }
+
+        .navbar-brand-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #f5f5f7 !important;
+            letter-spacing: -0.3px;
         }
 
         .navbar-brand img {
-            height: 50px;
+            height: 36px;
             width: auto;
             object-fit: contain;
         }
 
-        .contenido-principal {
-            background: white;
-            padding: 25px;
+        .btn-nav {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f5f5f7 !important;
             border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            padding: 7px 14px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
         }
 
-        .nav-active {
-            background-color: rgba(255,255,255,0.15) !important;
-            border-radius: 6px;
+            .btn-nav:hover {
+                background: rgba(255, 255, 255, 0.15);
+                border-color: rgba(255, 255, 255, 0.2);
+                color: #ffffff !important;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            }
+
+            .btn-nav:active {
+                transform: scale(0.96) !important;
+                background: rgba(255, 255, 255, 0.1);
+            }
+
+        .dropdown-menu {
+            background: rgba(44, 44, 46, 0.92) !important;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 14px !important;
+            padding: 6px !important;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+            margin-top: 6px !important;
+        }
+
+        .dropdown-item {
+            color: #f5f5f7 !important;
+            border-radius: 8px;
+            padding: 9px 14px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: all 0.18s ease;
+        }
+
+            .dropdown-item:hover {
+                background: rgba(255, 255, 255, 0.1) !important;
+                color: #ffffff !important;
+            }
+
+            .dropdown-item i {
+                color: #0a84ff;
+            }
+
+        .main-wrapper {
+            flex: 1;
+            padding: 28px 0 40px;
+        }
+
+        @@keyframes fadeInUp {
+            from
+
+        {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        }
+
+        .glass-card {
+            background: rgba(28, 28, 30, 0.6);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+            animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        .card {
+            background: rgba(28, 28, 30, 0.7) !important;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
+            color: #f5f5f7;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+            .card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
+            }
+
+        .card-header {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 16px 16px 0 0 !important;
+            font-weight: 600;
+            color: #f5f5f7;
+        }
+
+        .card-body {
+            color: #f5f5f7;
+        }
+
+        .table {
+            color: #f5f5f7 !important;
+        }
+
+        .table-dark {
+            background: rgba(10, 132, 255, 0.15) !important;
+        }
+
+            .table-dark th {
+                background: rgba(10, 132, 255, 0.2) !important;
+                color: #f5f5f7 !important;
+                border-color: rgba(255, 255, 255, 0.08) !important;
+                font-weight: 600;
+                font-size: 13px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+        .table td, .table th {
+            border-color: rgba(255, 255, 255, 0.06) !important;
+        }
+
+        .table-hover tbody tr:hover {
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: #ffffff;
+        }
+
+        .table-bordered {
+            border-color: rgba(255, 255, 255, 0.06) !important;
+        }
+
+        .table-secondary {
+            background: rgba(142, 142, 147, 0.15) !important;
+            color: #8e8e93 !important;
+        }
+
+        .table-warning {
+            background: rgba(255, 159, 10, 0.15) !important;
+        }
+
+        .table-success {
+            background: rgba(48, 209, 88, 0.12) !important;
+        }
+
+        .table-danger {
+            background: rgba(255, 69, 58, 0.12) !important;
+        }
+
+        .btn {
+            border-radius: 10px !important;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+            .btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+            }
+
+            .btn:active {
+                transform: scale(0.96) !important;
+                transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            }
+
+        .btn-primary {
+            background: #0a84ff !important;
+            border-color: #0a84ff !important;
+            color: #ffffff !important;
+        }
+
+            .btn-primary:hover {
+                background: #409cff !important;
+                border-color: #409cff !important;
+                box-shadow: 0 4px 20px rgba(10, 132, 255, 0.4) !important;
+            }
+
+        .btn-success {
+            background: #30d158 !important;
+            border-color: #30d158 !important;
+            color: #000000 !important;
+        }
+
+            .btn-success:hover {
+                background: #34c759 !important;
+                border-color: #34c759 !important;
+                box-shadow: 0 4px 20px rgba(48, 209, 88, 0.4) !important;
+            }
+
+        .btn-danger {
+            background: #ff453a !important;
+            border-color: #ff453a !important;
+            color: #ffffff !important;
+        }
+
+            .btn-danger:hover {
+                background: #ff6961 !important;
+                border-color: #ff6961 !important;
+                box-shadow: 0 4px 20px rgba(255, 69, 58, 0.4) !important;
+            }
+
+        .btn-warning {
+            background: #ff9f0a !important;
+            border-color: #ff9f0a !important;
+            color: #000000 !important;
+        }
+
+            .btn-warning:hover {
+                background: #ffb340 !important;
+                border-color: #ffb340 !important;
+                box-shadow: 0 4px 20px rgba(255, 159, 10, 0.4) !important;
+            }
+
+        .btn-secondary {
+            background: rgba(99, 99, 102, 0.4) !important;
+            border-color: rgba(99, 99, 102, 0.5) !important;
+            color: #f5f5f7 !important;
+        }
+
+            .btn-secondary:hover {
+                background: rgba(99, 99, 102, 0.6) !important;
+                color: #ffffff !important;
+            }
+
+        .btn-info {
+            background: #5ac8fa !important;
+            border-color: #5ac8fa !important;
+            color: #000000 !important;
+        }
+
+        .btn-outline-secondary {
+            border-color: rgba(255, 255, 255, 0.2) !important;
+            color: #f5f5f7 !important;
+        }
+
+            .btn-outline-secondary:hover {
+                background: rgba(255, 255, 255, 0.1) !important;
+                color: #ffffff !important;
+            }
+
+        .form-control, .form-select {
+            background: rgba(44, 44, 46, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: #f5f5f7 !important;
+            border-radius: 10px !important;
+            transition: all 0.2s ease !important;
+        }
+
+            .form-control:focus, .form-select:focus {
+                background: rgba(44, 44, 46, 0.95) !important;
+                border-color: #0a84ff !important;
+                box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2) !important;
+                color: #ffffff !important;
+            }
+
+            .form-control::placeholder {
+                color: #636366 !important;
+            }
+
+            .form-control.bg-light {
+                background: rgba(44, 44, 46, 0.5) !important;
+                color: #8e8e93 !important;
+            }
+
+        .form-label {
+            color: #ebebf5cc;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-check-input {
+            background-color: rgba(44, 44, 46, 0.8) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+
+            .form-check-input:checked {
+                background-color: #30d158 !important;
+                border-color: #30d158 !important;
+            }
+
+        .input-group-text {
+            background: rgba(44, 44, 46, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: #8e8e93 !important;
+        }
+
+        .alert {
+            border-radius: 14px !important;
+            backdrop-filter: blur(10px);
+        }
+
+        .alert-success {
+            background: rgba(48, 209, 88, 0.15) !important;
+            color: #30d158 !important;
+            border: 1px solid rgba(48, 209, 88, 0.2) !important;
+        }
+
+        .alert-danger {
+            background: rgba(255, 69, 58, 0.15) !important;
+            color: #ff6961 !important;
+            border: 1px solid rgba(255, 69, 58, 0.2) !important;
+        }
+
+        .alert-warning {
+            background: rgba(255, 159, 10, 0.15) !important;
+            color: #ff9f0a !important;
+            border: 1px solid rgba(255, 159, 10, 0.2) !important;
+        }
+
+        .alert-info {
+            background: rgba(90, 200, 250, 0.15) !important;
+            color: #5ac8fa !important;
+            border: 1px solid rgba(90, 200, 250, 0.2) !important;
+        }
+
+        .btn-close {
+            filter: invert(1);
+        }
+
+        .badge.bg-success {
+            background: rgba(48, 209, 88, 0.25) !important;
+            color: #30d158 !important;
+        }
+
+        .badge.bg-danger {
+            background: rgba(255, 69, 58, 0.25) !important;
+            color: #ff6961 !important;
+        }
+
+        .badge.bg-warning {
+            background: rgba(255, 159, 10, 0.25) !important;
+            color: #ff9f0a !important;
+        }
+
+        .badge.bg-info {
+            background: rgba(90, 200, 250, 0.25) !important;
+            color: #5ac8fa !important;
+        }
+
+        .badge.bg-secondary {
+            background: rgba(142, 142, 147, 0.25) !important;
+            color: #8e8e93 !important;
+        }
+
+        .badge.bg-primary {
+            background: rgba(10, 132, 255, 0.25) !important;
+            color: #0a84ff !important;
+        }
+
+        .badge.bg-dark {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #f5f5f7 !important;
+        }
+
+        .text-muted {
+            color: #636366 !important;
+        }
+
+        .text-success {
+            color: #30d158 !important;
+        }
+
+        .text-danger {
+            color: #ff453a !important;
+        }
+
+        .text-warning {
+            color: #ff9f0a !important;
+        }
+
+        .text-info {
+            color: #5ac8fa !important;
+        }
+
+        .text-primary {
+            color: #0a84ff !important;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: #f5f5f7;
+        }
+
+        .border-primary {
+            border-color: rgba(10, 132, 255, 0.4) !important;
+        }
+
+        .border-success {
+            border-color: rgba(48, 209, 88, 0.4) !important;
+        }
+
+        .border-danger {
+            border-color: rgba(255, 69, 58, 0.4) !important;
+        }
+
+        .border-warning {
+            border-color: rgba(255, 159, 10, 0.4) !important;
+        }
+
+        .border-secondary {
+            border-color: rgba(142, 142, 147, 0.4) !important;
+        }
+
+        .border-info {
+            border-color: rgba(90, 200, 250, 0.4) !important;
+        }
+
+        hr {
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .footer-glass {
+            background: rgba(28, 28, 30, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            color: #636366;
+            text-align: center;
+            padding: 16px 0;
+            font-size: 13px;
+            margin-top: auto;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1c1c1e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.25);
+            }
+
+        .dropdown-toggle::after {
+            border-top-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .list-unstyled li {
+            margin-bottom: 4px;
+        }
+
+        .table-borderless td, .table-borderless th {
+            border: none !important;
+            color: #f5f5f7;
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow mb-4">
-        <div class="container">
 
-            <a class="navbar-brand d-flex align-items-center" href="/">
-                <img src="~/img/Logo2.png" class="me-2">
-                Mercadito UPH
+    <nav class="navbar navbar-expand-lg navbar-glass">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <img src="~/img/Logo2.png" alt="Logo">
+                <span class="navbar-brand-text">Mercadito UPH</span>
             </a>
 
-            <button class="navbar-toggler" type="button"
+            <button class="navbar-toggler border-0" type="button"
                     data-bs-toggle="collapse"
-                    data-bs-target="#navbarMenu">
-                <span class="navbar-toggler-icon"></span>
+                    data-bs-target="#navbarMenu"
+                    style="color: #f5f5f7;">
+                <i class="bi bi-list fs-4"></i>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarMenu">
-                <div class="ms-auto d-flex gap-2 align-items-center">
+                <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
 
-                    <a class="btn btn-outline-light" href="/Categoria">
-                        <i class="bi bi-tags me-1"></i>Categorías
-                    </a>
+                    <div class="dropdown">
+                        <button class="btn-nav dropdown-toggle"
+                                data-bs-toggle="dropdown">
+                            <i class="bi bi-tags me-1"></i>Categorías
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="/Categoria">
+                                    <i class="bi bi-tag me-2"></i>Categorías
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="/Subcategoria/Index">
+                                    <i class="bi bi-diagram-3 me-2"></i>Subcategorías
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
 
-                    <a class="btn btn-outline-light" href="/Producto">
+                    <a class="btn-nav" href="/Producto">
                         <i class="bi bi-box-seam me-1"></i>Productos
                     </a>
 
-                    <a class="btn btn-outline-light" href="/Lote/Index">
+                    <a class="btn-nav" href="/Lote/Index">
                         <i class="bi bi-collection me-1"></i>Lotes
                     </a>
 
                     <div class="dropdown">
-                        <button class="btn btn-outline-light dropdown-toggle"
+                        <button class="btn-nav dropdown-toggle"
                                 data-bs-toggle="dropdown">
                             <i class="bi bi-cart-check me-1"></i>Ventas
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
                                 <a class="dropdown-item" href="/Venta/Create">
-                                    <i class="bi bi-plus-circle me-2"></i>
-                                    Nueva Venta
+                                    <i class="bi bi-plus-circle me-2"></i>Nueva Venta
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item" href="/Venta/Index">
-                                    <i class="bi bi-receipt me-2"></i>
-                                    Historial de Ventas
+                                    <i class="bi bi-receipt me-2"></i>Historial de Ventas
                                 </a>
                             </li>
                         </ul>
                     </div>
 
                     <div class="dropdown">
-                        <button class="btn btn-outline-light dropdown-toggle"
+                        <button class="btn-nav dropdown-toggle"
                                 data-bs-toggle="dropdown">
                             <i class="bi bi-bar-chart-line me-1"></i>Reportes
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
                                 <a class="dropdown-item" href="/Reporte/Productos">
-                                    <i class="bi bi-box-seam me-2"></i>
-                                    Reporte de Productos
+                                    <i class="bi bi-box-seam me-2"></i>Reporte de Productos
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item" href="/Reporte/Lotes">
-                                    <i class="bi bi-collection me-2"></i>
-                                    Lotes por Producto
+                                    <i class="bi bi-collection me-2"></i>Lotes por Producto
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item" href="/Reporte/Movimientos">
-                                    <i class="bi bi-arrow-left-right me-2"></i>
-                                    Movimientos de Inventario
+                                    <i class="bi bi-arrow-left-right me-2"></i>Movimientos
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item" href="/Reporte/Ventas">
-                                    <i class="bi bi-cash-coin me-2"></i>
-                                    Reporte de Ventas
+                                    <i class="bi bi-cash-coin me-2"></i>Reporte de Ventas
                                 </a>
                             </li>
                         </ul>
@@ -122,7 +614,7 @@
         </div>
     </nav>
 
-    <div class="container">
+    <div class="container mt-3">
         @if (TempData["Success"] != null)
         {
             <div class="alert alert-success alert-dismissible fade show">
@@ -139,23 +631,52 @@
         }
     </div>
 
-    <div class="fondo-sistema">
+    <div class="main-wrapper">
         <div class="container">
-            <div class="contenido-principal">
+            <div class="glass-card">
                 @RenderBody()
             </div>
         </div>
     </div>
 
-    <footer class="bg-dark text-white text-center py-3 mt-4">
-        <small>
-            <i class="bi bi-shop me-1"></i>
-            Mercadito UPH &copy; @DateTime.Now.Year —
-            Sistema de Punto de Venta | Grupo 2
-        </small>
+    <footer class="footer-glass">
+        <i class="bi bi-shop me-1"></i>
+        Mercadito UPH &copy; @DateTime.Now.Year —
+        Sistema de Punto de Venta | Grupo 2
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.3s ease';
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    document.body.style.opacity = '1';
+                });
+            });
+        });
+
+        document.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href &&
+                    !href.startsWith('#') &&
+                    !href.startsWith('javascript') &&
+                    !this.hasAttribute('data-bs-toggle') &&
+                    !this.hasAttribute('onclick')) {
+                    e.preventDefault();
+                    document.body.style.opacity = '0';
+                    setTimeout(() => {
+                        window.location.href = href;
+                    }, 250);
+                }
+            });
+        });
+    </script>
+
     @RenderSection("Scripts", required: false)
 </body>
 </html>

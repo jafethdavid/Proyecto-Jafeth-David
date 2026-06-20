@@ -2,35 +2,45 @@
 using IS_161_Proyecto_Grupo2.Models;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace IS_161_Proyecto_Grupo2.Controllers
 {
     public class ProductoController : Controller
     {
+        private readonly IProductoRepositorio _repoProducto;
+        private readonly ICategoriaRepositorio _repoCategoria;
+        private readonly ISubcategoriaRepositorio _repoSubcategoria;
+        private readonly ILoteRepositorio _repoLote;
+
+        public ProductoController(
+            IProductoRepositorio repoProducto,
+            ICategoriaRepositorio repoCategoria,
+            ISubcategoriaRepositorio repoSubcategoria,
+            ILoteRepositorio repoLote)
+        {
+            _repoProducto = repoProducto;
+            _repoCategoria = repoCategoria;
+            _repoSubcategoria = repoSubcategoria;
+            _repoLote = repoLote;
+        }
+
         public IActionResult Index()
         {
-            var productos = BaseDatosMemoria.Productos.ToList();
+            var productos = _repoProducto.ObtenerTodos();
 
             foreach (var p in productos)
             {
-                p.Lotes = BaseDatosMemoria.Lotes
-                    .Where(l => l.IdProducto == p.IdProducto).ToList();
-
-                var cat = BaseDatosMemoria.Categorias
-                    .FirstOrDefault(c => c.IdCategoria == p.IdCategoria);
-                p.NombreCategoria = cat?.Nombre;
-
-                var sub = BaseDatosMemoria.Subcategorias
-                    .FirstOrDefault(s => s.IdSubcategoria == p.IdSubcategoria);
-                p.NombreSubcategoria = sub?.Nombre;
+                p.Lotes = _repoLote.ObtenerPorProducto(p.IdProducto);
             }
+
             return View(productos);
         }
 
         public IActionResult Create()
         {
-            var categoriasActivas = BaseDatosMemoria.Categorias
+            var categoriasActivas = _repoCategoria.ObtenerTodas()
                 .Where(c => c.Estado).ToList();
 
             if (!categoriasActivas.Any())
@@ -48,19 +58,13 @@ namespace IS_161_Proyecto_Grupo2.Controllers
         public IActionResult Create(Producto producto)
         {
             if (producto.IdSubcategoria == 0)
-            {
-                ModelState.AddModelError("IdSubcategoria",
-                    "Debe seleccionar una subcategoría.");
-            }
+                ModelState.AddModelError("IdSubcategoria", "Debe seleccionar una subcategoría.");
 
             if (producto.IdCategoria == 0)
-            {
-                ModelState.AddModelError("IdCategoria",
-                    "Debe seleccionar una categoría.");
-            }
+                ModelState.AddModelError("IdCategoria", "Debe seleccionar una categoría.");
 
             if (!string.IsNullOrEmpty(producto.CodigoProducto) &&
-                BaseDatosMemoria.Productos.Any(p =>
+                _repoProducto.ObtenerTodos().Any(p =>
                 p.CodigoProducto.ToLower() == producto.CodigoProducto.ToLower()))
             {
                 ModelState.AddModelError("CodigoProducto",
@@ -70,51 +74,39 @@ namespace IS_161_Proyecto_Grupo2.Controllers
             if (producto.PrecioCosto.HasValue && producto.PrecioVenta.HasValue)
             {
                 if (producto.PrecioVenta.Value < producto.PrecioCosto.Value)
-                {
                     ModelState.AddModelError("PrecioVenta",
                         "El precio de venta no puede ser menor que el precio de costo.");
-                }
 
                 if (producto.PrecioVenta.Value == producto.PrecioCosto.Value)
-                {
                     ModelState.AddModelError("PrecioVenta",
                         "El precio de venta es igual al costo — el margen de ganancia será 0%.");
-                }
             }
 
             if (!ModelState.IsValid)
             {
-                ViewBag.Categorias = BaseDatosMemoria.Categorias
+                ViewBag.Categorias = _repoCategoria.ObtenerTodas()
                     .Where(c => c.Estado).ToList();
-                ViewBag.Subcategorias = BaseDatosMemoria.Subcategorias
-                    .Where(s => s.IdCategoria == producto.IdCategoria && s.Estado).ToList();
+                ViewBag.Subcategorias = _repoSubcategoria
+                    .ObtenerPorCategoria(producto.IdCategoria);
                 return View(producto);
             }
 
-            producto.IdProducto = BaseDatosMemoria.Productos.Any()
-                ? BaseDatosMemoria.Productos.Max(p => p.IdProducto) + 1
-                : 1;
-
-            if (string.IsNullOrWhiteSpace(producto.CodigoProducto))
-                producto.CodigoProducto = producto.IdProducto.ToString();
-
             producto.FechaCreacion = DateTime.Now;
-            BaseDatosMemoria.Productos.Add(producto);
+            _repoProducto.Insertar(producto);
             TempData["Success"] = "Producto creado correctamente.";
             return RedirectToAction("Index");
         }
 
         public IActionResult Edit(int id)
         {
-            var producto = BaseDatosMemoria.Productos
-                .FirstOrDefault(p => p.IdProducto == id);
+            var producto = _repoProducto.ObtenerPorId(id);
             if (producto == null)
                 return RedirectToAction("Index");
 
-            ViewBag.Categorias = BaseDatosMemoria.Categorias
+            ViewBag.Categorias = _repoCategoria.ObtenerTodas()
                 .Where(c => c.Estado).ToList();
-            ViewBag.Subcategorias = BaseDatosMemoria.Subcategorias
-                .Where(s => s.IdCategoria == producto.IdCategoria && s.Estado).ToList();
+            ViewBag.Subcategorias = _repoSubcategoria
+                .ObtenerPorCategoria(producto.IdCategoria);
             return View(producto);
         }
 
@@ -122,19 +114,13 @@ namespace IS_161_Proyecto_Grupo2.Controllers
         public IActionResult Edit(Producto producto)
         {
             if (producto.IdSubcategoria == 0)
-            {
-                ModelState.AddModelError("IdSubcategoria",
-                    "Debe seleccionar una subcategoría.");
-            }
+                ModelState.AddModelError("IdSubcategoria", "Debe seleccionar una subcategoría.");
 
             if (producto.IdCategoria == 0)
-            {
-                ModelState.AddModelError("IdCategoria",
-                    "Debe seleccionar una categoría.");
-            }
+                ModelState.AddModelError("IdCategoria", "Debe seleccionar una categoría.");
 
             if (!string.IsNullOrEmpty(producto.CodigoProducto) &&
-                BaseDatosMemoria.Productos.Any(p =>
+                _repoProducto.ObtenerTodos().Any(p =>
                 p.CodigoProducto.ToLower() == producto.CodigoProducto.ToLower() &&
                 p.IdProducto != producto.IdProducto))
             {
@@ -145,52 +131,31 @@ namespace IS_161_Proyecto_Grupo2.Controllers
             if (producto.PrecioCosto.HasValue && producto.PrecioVenta.HasValue)
             {
                 if (producto.PrecioVenta.Value < producto.PrecioCosto.Value)
-                {
                     ModelState.AddModelError("PrecioVenta",
                         "El precio de venta no puede ser menor que el precio de costo.");
-                }
 
                 if (producto.PrecioVenta.Value == producto.PrecioCosto.Value)
-                {
                     ModelState.AddModelError("PrecioVenta",
                         "El precio de venta es igual al costo — el margen de ganancia será 0%.");
-                }
             }
 
             if (!ModelState.IsValid)
             {
-                ViewBag.Categorias = BaseDatosMemoria.Categorias
+                ViewBag.Categorias = _repoCategoria.ObtenerTodas()
                     .Where(c => c.Estado).ToList();
-                ViewBag.Subcategorias = BaseDatosMemoria.Subcategorias
-                    .Where(s => s.IdCategoria == producto.IdCategoria && s.Estado).ToList();
+                ViewBag.Subcategorias = _repoSubcategoria
+                    .ObtenerPorCategoria(producto.IdCategoria);
                 return View(producto);
             }
 
-            var prod = BaseDatosMemoria.Productos
-                .FirstOrDefault(p => p.IdProducto == producto.IdProducto);
-
-            if (prod != null)
-            {
-                prod.NombreProducto = producto.NombreProducto;
-                prod.IdCategoria = producto.IdCategoria;
-                prod.IdSubcategoria = producto.IdSubcategoria;
-                prod.PrecioCosto = producto.PrecioCosto;
-                prod.PrecioVenta = producto.PrecioVenta;
-                prod.Impuesto = producto.Impuesto;
-                prod.CodigoProducto = producto.CodigoProducto;
-                prod.StockMinimo = producto.StockMinimo;
-                prod.Estado = producto.Estado;
-                prod.ImagenUrl = producto.ImagenUrl;
-            }
-
+            _repoProducto.Actualizar(producto);
             TempData["Success"] = "Producto actualizado correctamente.";
             return RedirectToAction("Index");
         }
 
         public IActionResult Delete(int id)
         {
-            var producto = BaseDatosMemoria.Productos
-                .FirstOrDefault(p => p.IdProducto == id);
+            var producto = _repoProducto.ObtenerPorId(id);
 
             if (producto == null)
             {
@@ -198,12 +163,12 @@ namespace IS_161_Proyecto_Grupo2.Controllers
                 return RedirectToAction("Index");
             }
 
-            bool tieneLotesActivos = BaseDatosMemoria.Lotes
-                .Any(l => l.IdProducto == id && l.Estatus && l.Cantidad > 0);
+            bool tieneLotesActivos = _repoLote.ObtenerPorProducto(id)
+                .Any(l => l.Estatus && l.Cantidad > 0);
 
             if (tieneLotesActivos)
             {
-                TempData["Error"] = "No se puede desactivar el producto porque tiene lotes activos con stock. Desactívalos primero.";
+                TempData["Error"] = "No se puede desactivar el producto porque tiene lotes activos con stock.";
                 return RedirectToAction("Index");
             }
 
@@ -213,15 +178,15 @@ namespace IS_161_Proyecto_Grupo2.Controllers
                 return RedirectToAction("Index");
             }
 
-            producto.Estado = false;
+            _repoProducto.Eliminar(id);
             TempData["Success"] = "Producto desactivado correctamente.";
             return RedirectToAction("Index");
         }
 
         public JsonResult ObtenerSubcategorias(int idCategoria)
         {
-            var subs = BaseDatosMemoria.Subcategorias
-                .Where(s => s.IdCategoria == idCategoria && s.Estado)
+            var subs = _repoSubcategoria
+                .ObtenerPorCategoria(idCategoria)
                 .Select(s => new { s.IdSubcategoria, s.Nombre })
                 .ToList();
             return Json(subs);

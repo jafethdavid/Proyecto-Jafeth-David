@@ -1,6 +1,5 @@
 ﻿using IS_161_Proyecto_Grupo2.Data;
 using IS_161_Proyecto_Grupo2.Models;
-using IS_161_Proyecto_Grupo2.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 
@@ -8,65 +7,55 @@ namespace IS_161_Proyecto_Grupo2.Controllers
 {
     public class ReporteController : Controller
     {
-        private readonly ServicioInventario servicioInventario = new ServicioInventario();
+        private readonly IProductoRepositorio _repoProducto;
+        private readonly ILoteRepositorio _repoLote;
+        private readonly IMovimientoRepositorio _repoMovimiento;
+        private readonly IFacturaRepositorio _repoFactura;
+
+        public ReporteController(
+            IProductoRepositorio repoProducto,
+            ILoteRepositorio repoLote,
+            IMovimientoRepositorio repoMovimiento,
+            IFacturaRepositorio repoFactura)
+        {
+            _repoProducto = repoProducto;
+            _repoLote = repoLote;
+            _repoMovimiento = repoMovimiento;
+            _repoFactura = repoFactura;
+        }
 
         public IActionResult Productos()
         {
-            var productos = BaseDatosMemoria.Productos.ToList();
+            var productos = _repoProducto.ObtenerTodos();
 
             foreach (var p in productos)
-            {
-                p.Lotes = BaseDatosMemoria.Lotes
-                    .Where(l => l.IdProducto == p.IdProducto).ToList();
+                p.Lotes = _repoLote.ObtenerPorProducto(p.IdProducto);
 
-                var cat = BaseDatosMemoria.Categorias
-                    .FirstOrDefault(c => c.IdCategoria == p.IdCategoria);
-                p.NombreCategoria = cat?.Nombre;
-
-                var sub = BaseDatosMemoria.Subcategorias
-                    .FirstOrDefault(s => s.IdSubcategoria == p.IdSubcategoria);
-                p.NombreSubcategoria = sub?.Nombre;
-            }
-
-            ViewBag.ProductosBajoStock = servicioInventario
-                .ObtenerProductosBajoStock();
+            ViewBag.ProductosBajoStock = productos
+                .Where(p => p.Estado && p.BajoStock())
+                .ToList();
 
             return View(productos);
         }
 
         public IActionResult Lotes()
         {
-            var lotes = BaseDatosMemoria.Lotes.ToList();
+            var lotes = _repoLote.ObtenerTodos();
 
-            foreach (var l in lotes)
-            {
-                var prod = BaseDatosMemoria.Productos
-                    .FirstOrDefault(p => p.IdProducto == l.IdProducto);
-                l.NombreProducto = prod?.NombreProducto;
-            }
-
-            ViewBag.LotesProximosVencer = servicioInventario
-                .ObtenerLotesProximosAVencer(30);
+            ViewBag.LotesProximosVencer = lotes
+                .Where(l => l.Estatus
+                         && l.FechaVencimiento.HasValue
+                         && l.DiasParaVencer() >= 0
+                         && l.DiasParaVencer() <= 30)
+                .OrderBy(l => l.FechaVencimiento)
+                .ToList();
 
             return View(lotes);
         }
 
         public IActionResult Movimientos()
         {
-            var movimientos = BaseDatosMemoria.Movimientos
-                .OrderByDescending(m => m.FechaMovimiento) 
-                .ToList();
-
-            foreach (var m in movimientos)
-            {
-                var prod = BaseDatosMemoria.Productos
-                    .FirstOrDefault(p => p.IdProducto == m.IdProducto);
-                m.NombreProducto = prod?.NombreProducto;
-
-                var lote = BaseDatosMemoria.Lotes
-                    .FirstOrDefault(l => l.IdLote == m.IdLote);
-                m.CodigoLote = lote?.CodigoLote;
-            }
+            var movimientos = _repoMovimiento.ObtenerTodos();
 
             ViewBag.TipoEntrada = EnumTipoMovimiento.Entrada;
             ViewBag.TipoSalida = EnumTipoMovimiento.Salida;
@@ -76,27 +65,16 @@ namespace IS_161_Proyecto_Grupo2.Controllers
 
         public IActionResult Ventas()
         {
-            var facturas = BaseDatosMemoria.Facturas
-                .OrderByDescending(f => f.Fecha) 
-                .ToList();
-
+            var facturas = _repoFactura.ObtenerTodas();
             return View(facturas);
         }
 
         public IActionResult Detalle(int id)
         {
-            var factura = BaseDatosMemoria.Facturas
-                .FirstOrDefault(f => f.IdFactura == id);
+            var factura = _repoFactura.ObtenerPorId(id);
 
             if (factura == null)
                 return RedirectToAction("Ventas");
-
-            foreach (var det in factura.Detalles)
-            {
-                var prod = BaseDatosMemoria.Productos
-                    .FirstOrDefault(p => p.IdProducto == det.IdProducto);
-                det.NombreProducto = prod?.NombreProducto;
-            }
 
             return View(factura);
         }

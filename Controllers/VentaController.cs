@@ -1,35 +1,55 @@
 ﻿using IS_161_Proyecto_Grupo2.Data;
 using IS_161_Proyecto_Grupo2.Models;
-using IS_161_Proyecto_Grupo2.Services;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Linq;
 
 namespace IS_161_Proyecto_Grupo2.Controllers
 {
     public class VentaController : Controller
     {
-        private readonly ServicioVentas servicioVentas = new ServicioVentas();
+        private readonly IFacturaRepositorio _repoFactura;
+        private readonly IDetalleFacturaRepositorio _repoDetalle;
+        private readonly IProductoRepositorio _repoProducto;
+        private readonly ILoteRepositorio _repoLote;
+        private readonly IMovimientoRepositorio _repoMovimiento;
+        private readonly ICategoriaRepositorio _repoCategoria;
+        private readonly ISubcategoriaRepositorio _repoSubcategoria;
+
+        public VentaController(
+            IFacturaRepositorio repoFactura,
+            IDetalleFacturaRepositorio repoDetalle,
+            IProductoRepositorio repoProducto,
+            ILoteRepositorio repoLote,
+            IMovimientoRepositorio repoMovimiento,
+            ICategoriaRepositorio repoCategoria,
+            ISubcategoriaRepositorio repoSubcategoria)
+        {
+            _repoFactura = repoFactura;
+            _repoDetalle = repoDetalle;
+            _repoProducto = repoProducto;
+            _repoLote = repoLote;
+            _repoMovimiento = repoMovimiento;
+            _repoCategoria = repoCategoria;
+            _repoSubcategoria = repoSubcategoria;
+        }
 
         public IActionResult Index()
         {
-            var facturas = BaseDatosMemoria.Facturas
-                .OrderByDescending(f => f.Fecha)
-                .ToList();
+            var facturas = _repoFactura.ObtenerTodas();
             return View(facturas);
         }
 
         public IActionResult Create()
         {
-            var productos = BaseDatosMemoria.Productos
-                .Where(p => p.Estado)
-                .ToList();
+            var productos = _repoProducto.ObtenerActivos();
 
             foreach (var p in productos)
-                p.Lotes = BaseDatosMemoria.Lotes
-                    .Where(l => l.IdProducto == p.IdProducto
-                             && l.Estatus
-                             && !l.EstaVencido())
+            {
+                p.Lotes = _repoLote.ObtenerPorProducto(p.IdProducto)
+                    .Where(l => l.Estatus && !l.EstaVencido())
                     .ToList();
+            }
 
             if (!productos.Any())
             {
@@ -47,12 +67,12 @@ namespace IS_161_Proyecto_Grupo2.Controllers
             }
 
             if (productosSinStock.Any())
-                TempData["Warning"] = $"{productosSinStock.Count} producto(s) no tienen stock disponible y no aparecerán en la lista.";
+                TempData["Warning"] = $"{productosSinStock.Count} producto(s) no tienen stock y no aparecerán en la lista.";
 
             ViewBag.Productos = productosConStock;
-            ViewBag.Categorias = BaseDatosMemoria.Categorias
+            ViewBag.Categorias = _repoCategoria.ObtenerTodas()
                 .Where(c => c.Estado).ToList();
-            ViewBag.Subcategorias = BaseDatosMemoria.Subcategorias
+            ViewBag.Subcategorias = _repoSubcategoria.ObtenerTodas()
                 .Where(s => s.Estado).ToList();
 
             return View();
@@ -69,8 +89,7 @@ namespace IS_161_Proyecto_Grupo2.Controllers
 
             foreach (var detalle in factura.Detalles)
             {
-                var producto = BaseDatosMemoria.Productos
-                    .FirstOrDefault(p => p.IdProducto == detalle.IdProducto);
+                var producto = _repoProducto.ObtenerPorId(detalle.IdProducto);
 
                 if (producto == null || !producto.Estado)
                 {
@@ -84,9 +103,8 @@ namespace IS_161_Proyecto_Grupo2.Controllers
                     return RedirectToAction("Create");
                 }
 
-                producto.Lotes = BaseDatosMemoria.Lotes
-                    .Where(l => l.IdProducto == producto.IdProducto
-                             && l.Estatus && !l.EstaVencido())
+                producto.Lotes = _repoLote.ObtenerPorProducto(producto.IdProducto)
+                    .Where(l => l.Estatus && !l.EstaVencido())
                     .ToList();
 
                 if (producto.StockTotal() < detalle.Cantidad)
@@ -96,39 +114,38 @@ namespace IS_161_Proyecto_Grupo2.Controllers
                 }
 
                 detalle.PrecioUnitario = producto.PrecioVenta ?? 0;
+                detalle.CalcularSubtotal();
             }
 
-            decimal totalVenta = factura.Detalles
-                .Sum(d => d.Cantidad * (d.PrecioUnitario > 0
-                    ? d.PrecioUnitario
-                    : BaseDatosMemoria.Productos
-                        .FirstOrDefault(p => p.IdProducto == d.IdProducto)
-                        ?.PrecioVenta ?? 0));
+            factura.CalcularTotales();
 
-            decimal totalConIva = totalVenta + (totalVenta * 0.15m);
-
-            if (factura.MontoPagado.HasValue && factura.MontoPagado.Value < totalConIva)
+            if (factura.MontoPagado.HasValue &&
+                factura.MontoPagado.Value < factura.Total)
             {
-                TempData["Error"] = $"El monto pagado (L. {factura.MontoPagado.Value:N2}) es menor al total de la factura (L. {totalConIva:N2}).";
+                TempData["Error"] = $"El monto pagado (L. {factura.MontoPagado.Value:N2}) es menor al total (L. {factura.Total:N2}).";
                 return RedirectToAction("Create");
             }
 
-            bool ventaExitosa = servicioVentas.RegistrarVenta(factura);
+            factura.Fecha = DateTime.Now;
+            factura.EstatusFactura = EnumEstatusFactura.Procesada;
+            int idFactura = _repoFactura.Insertar(factura);
+            factura.IdFactura = idFactura;
 
-            if (!ventaExitosa)
+            foreach (var detalle in factura.Detalles)
             {
-                TempData["Error"] = "Stock insuficiente para uno o más productos.";
-                return RedirectToAction("Create");
+                detalle.IdFactura = idFactura;
+                _repoDetalle.Insertar(detalle);
+
+                DescontarStockFIFO(detalle.IdProducto, detalle.Cantidad);
             }
 
             TempData["Exito"] = $"Venta registrada correctamente: {factura.NumeroFactura}";
-            return RedirectToAction("Detalle", new { id = factura.IdFactura });
+            return RedirectToAction("Detalle", new { id = idFactura });
         }
 
         public IActionResult Detalle(int id)
         {
-            var factura = BaseDatosMemoria.Facturas
-                .FirstOrDefault(f => f.IdFactura == id);
+            var factura = _repoFactura.ObtenerPorId(id);
 
             if (factura == null)
             {
@@ -136,19 +153,12 @@ namespace IS_161_Proyecto_Grupo2.Controllers
                 return RedirectToAction("Index");
             }
 
-            foreach (var det in factura.Detalles)
-            {
-                var prod = BaseDatosMemoria.Productos
-                    .FirstOrDefault(p => p.IdProducto == det.IdProducto);
-                det.NombreProducto = prod?.NombreProducto;
-            }
             return View(factura);
         }
 
         public IActionResult Cancelar(int id)
         {
-            var factura = BaseDatosMemoria.Facturas
-                .FirstOrDefault(f => f.IdFactura == id);
+            var factura = _repoFactura.ObtenerPorId(id);
 
             if (factura == null)
             {
@@ -162,13 +172,64 @@ namespace IS_161_Proyecto_Grupo2.Controllers
                 return RedirectToAction("Index");
             }
 
-            bool cancelado = servicioVentas.CancelarVenta(id);
+            foreach (var detalle in factura.Detalles)
+            {
+                var loteDevolucion = new Lote
+                {
+                    IdProducto = detalle.IdProducto,
+                    CodigoLote = $"DEV-FAC{id:D6}",
+                    Cantidad = detalle.Cantidad,
+                    Unidades = "unidad",
+                    Estatus = true,
+                    FechaIngreso = DateTime.Now
+                };
 
-            TempData[cancelado ? "Exito" : "Error"] = cancelado
-                ? $"Factura {factura.NumeroFactura} cancelada y stock devuelto correctamente."
-                : "No se pudo cancelar la factura.";
+                _repoLote.Insertar(loteDevolucion);
 
+                _repoMovimiento.Insertar(new MovimientoInventario(
+                    detalle.IdProducto,
+                    loteDevolucion.IdLote,
+                    EnumTipoMovimiento.Entrada,
+                    detalle.Cantidad
+                ));
+            }
+
+            factura.EstatusFactura = EnumEstatusFactura.Cancelada;
+            _repoFactura.Actualizar(factura);
+
+            TempData["Exito"] = $"Factura {factura.NumeroFactura} cancelada y stock devuelto.";
             return RedirectToAction("Index");
+        }
+
+        private void DescontarStockFIFO(int idProducto, int cantidad)
+        {
+            var lotes = _repoLote.ObtenerPorProducto(idProducto)
+                .Where(l => l.Estatus && !l.EstaVencido() && l.Cantidad > 0)
+                .OrderBy(l => l.FechaIngreso)
+                .ToList();
+
+            int restante = cantidad;
+
+            foreach (var lote in lotes)
+            {
+                if (restante <= 0) break;
+
+                int descontar = Math.Min(restante, lote.Cantidad);
+                lote.Cantidad -= descontar;
+                restante -= descontar;
+
+                if (lote.Cantidad == 0)
+                    lote.Estatus = false;
+
+                _repoLote.Actualizar(lote);
+
+                _repoMovimiento.Insertar(new MovimientoInventario(
+                    idProducto,
+                    lote.IdLote,
+                    EnumTipoMovimiento.Salida,
+                    descontar
+                ));
+            }
         }
     }
 }

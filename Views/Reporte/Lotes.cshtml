@@ -79,9 +79,7 @@
     <div class="col-md-3">
         <div class="card border-primary text-center">
             <div class="card-body">
-                <h5 class="text-primary">
-                    <i class="bi bi-collection me-1"></i>Total Lotes
-                </h5>
+                <h5 class="text-primary"><i class="bi bi-collection me-1"></i>Total Lotes</h5>
                 <h3>@lotes.Count</h3>
             </div>
         </div>
@@ -89,9 +87,7 @@
     <div class="col-md-3">
         <div class="card border-success text-center">
             <div class="card-body">
-                <h5 class="text-success">
-                    <i class="bi bi-check-circle me-1"></i>Activos
-                </h5>
+                <h5 class="text-success"><i class="bi bi-check-circle me-1"></i>Activos</h5>
                 <h3>@lotes.Count(l => l.Estatus && !l.EstaVencido())</h3>
             </div>
         </div>
@@ -99,9 +95,7 @@
     <div class="col-md-3">
         <div class="card border-danger text-center">
             <div class="card-body">
-                <h5 class="text-danger">
-                    <i class="bi bi-x-circle me-1"></i>Vencidos
-                </h5>
+                <h5 class="text-danger"><i class="bi bi-x-circle me-1"></i>Vencidos</h5>
                 <h3>@lotes.Count(l => l.EstaVencido())</h3>
             </div>
         </div>
@@ -109,9 +103,7 @@
     <div class="col-md-3">
         <div class="card border-warning text-center">
             <div class="card-body">
-                <h5 class="text-warning">
-                    <i class="bi bi-clock me-1"></i>Por Vencer
-                </h5>
+                <h5 class="text-warning"><i class="bi bi-clock me-1"></i>Por Vencer</h5>
                 <h3>@(lotesProximosVencer?.Count ?? 0)</h3>
             </div>
         </div>
@@ -128,7 +120,17 @@
         }
         else
         {
-            <table class="table table-bordered table-hover align-middle text-center">
+            <div class="d-flex justify-content-end gap-2 mb-3">
+                <button onclick="exportarExcel()" class="btn btn-success">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
+                </button>
+                <button onclick="exportarPDF()" class="btn btn-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+                </button>
+            </div>
+
+            <table class="table table-bordered table-hover align-middle text-center"
+                   id="tablaLotes">
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>
@@ -149,9 +151,7 @@
                                                                   lote.EstaVencido() ? "table-danger" :
                                                                   lote.DiasParaVencer() <= 30 ? "table-warning" : "")">
                     <td>@lote.IdLote</td>
-                    <td>
-                        <span class="badge bg-dark">@lote.CodigoLote</span>
-                    </td>
+                    <td><span class="badge bg-dark">@lote.CodigoLote</span></td>
                     <td class="text-start">@lote.NombreProducto</td>
                     <td>
                         @if (lote.Cantidad == 0)
@@ -160,9 +160,7 @@
                                 }
                                 else
                                 {
-                                    <span class="badge bg-info text-dark">
-                                        @lote.Cantidad
-                                    </span>
+                                    <span class="badge bg-info text-dark">@lote.Cantidad</span>
                                 }
                             </td>
                             <td>@lote.Unidades</td>
@@ -200,9 +198,7 @@
                                 }
                                 else
                                 {
-                                    <span class="text-success">
-                                        @lote.DiasParaVencer() días
-                                    </span>
+                                    <span class="text-success">@lote.DiasParaVencer() días</span>
                                 }
                             </td>
                             <td>
@@ -233,9 +229,9 @@
                     <table class="table table-borderless text-end">
                         <tr class="table-dark">
                             <td class="fw-bold">Total unidades en lotes activos:</td>
+                            @(..)
                             <td class="fw-bold">
-                                @lotes.Where(l => l.Estatus && !l.EstaVencido())
-                                .Sum(l => l.Cantidad) unidades
+                                @(lotes.Where(l => l.Estatus && !l.EstaVencido()).Sum(l => l.Cantidad)) unidades
                             </td>
                         </tr>
                     </table>
@@ -244,3 +240,55 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        function exportarExcel() {
+            const tabla = document.getElementById('tablaLotes');
+            const wb    = XLSX.utils.book_new();
+            const ws    = XLSX.utils.table_to_sheet(tabla);
+            XLSX.utils.book_append_sheet(wb, ws, 'Lotes');
+            XLSX.writeFile(wb, 'Reporte_Lotes.xlsx');
+        }
+
+        function exportarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape', 'mm', 'a4');
+
+            doc.setFontSize(16);
+            doc.text('Reporte de Lotes - MercaditoUPH', 14, 15);
+            doc.setFontSize(10);
+            doc.text(`Generado: ${new Date().toLocaleDateString('es-HN')}`, 14, 22);
+
+            const tabla   = document.getElementById('tablaLotes');
+            const headers = [];
+            const rows    = [];
+
+            tabla.querySelectorAll('thead tr th').forEach(th => {
+                headers.push(th.innerText.trim());
+            });
+
+            tabla.querySelectorAll('tbody tr').forEach(tr => {
+                const fila = [];
+                tr.querySelectorAll('td').forEach(td => {
+                    fila.push(td.innerText.trim());
+                });
+                rows.push(fila);
+            });
+
+            doc.autoTable({
+                head:       [headers],
+                body:       rows,
+                startY:     28,
+                styles:     { fontSize: 8, cellPadding: 2 },
+                headStyles: { fillColor: [33, 37, 41], textColor: 255 },
+                alternateRowStyles: { fillColor: [245, 245, 245] }
+            });
+
+            doc.save('Reporte_Lotes.pdf');
+        }
+    </script>
+}

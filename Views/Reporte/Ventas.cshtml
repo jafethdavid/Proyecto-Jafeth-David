@@ -43,13 +43,11 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-bold">Desde</label>
-                <input type="date" name="desde" class="form-control"
-                       value="@desdeFiltro" />
+                <input type="date" name="desde" class="form-control" value="@desdeFiltro" />
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-bold">Hasta</label>
-                <input type="date" name="hasta" class="form-control"
-                       value="@hastaFiltro" />
+                <input type="date" name="hasta" class="form-control" value="@hastaFiltro" />
             </div>
             <div class="col-md-3">
                 <button type="submit" class="btn btn-primary w-100">
@@ -67,9 +65,7 @@
     <div class="col-md-3">
         <div class="card border-primary text-center">
             <div class="card-body">
-                <h5 class="text-primary">
-                    <i class="bi bi-receipt me-1"></i>Total Facturas
-                </h5>
+                <h5 class="text-primary"><i class="bi bi-receipt me-1"></i>Total Facturas</h5>
                 <h3>@facturas.Count</h3>
             </div>
         </div>
@@ -77,9 +73,7 @@
     <div class="col-md-3">
         <div class="card border-success text-center">
             <div class="card-body">
-                <h5 class="text-success">
-                    <i class="bi bi-check-circle me-1"></i>Procesadas
-                </h5>
+                <h5 class="text-success"><i class="bi bi-check-circle me-1"></i>Procesadas</h5>
                 <h3>@procesadas.Count</h3>
             </div>
         </div>
@@ -87,9 +81,7 @@
     <div class="col-md-3">
         <div class="card border-secondary text-center">
             <div class="card-body">
-                <h5 class="text-secondary">
-                    <i class="bi bi-x-circle me-1"></i>Canceladas
-                </h5>
+                <h5 class="text-secondary"><i class="bi bi-x-circle me-1"></i>Canceladas</h5>
                 <h3>@canceladas.Count</h3>
             </div>
         </div>
@@ -97,9 +89,7 @@
     <div class="col-md-3">
         <div class="card border-success text-center">
             <div class="card-body">
-                <h5 class="text-success">
-                    <i class="bi bi-cash-stack me-1"></i>Total Vendido
-                </h5>
+                <h5 class="text-success"><i class="bi bi-cash-stack me-1"></i>Total Vendido</h5>
                 <h3>L. @totalVendido.ToString("N2")</h3>
             </div>
         </div>
@@ -116,7 +106,17 @@
         }
         else
         {
-            <table class="table table-bordered table-hover align-middle text-center">
+            <div class="d-flex justify-content-end gap-2 mb-3">
+                <button onclick="exportarExcel()" class="btn btn-success">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
+                </button>
+                <button onclick="exportarPDF()" class="btn btn-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+                </button>
+            </div>
+
+            <table class="table table-bordered table-hover align-middle text-center"
+                   id="tablaVentas">
                 <thead class="table-dark">
                     <tr>
                         <th>Factura #</th>
@@ -126,7 +126,6 @@
                         <th>IVA</th>
                         <th>Total</th>
                         <th>Estado</th>
-                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -135,11 +134,8 @@
                         <tr class="@(factura.EstatusFactura == EnumEstatusFactura.Cancelada
                                                                     ? "table-secondary"
                                                                     : factura.EstatusFactura == EnumEstatusFactura.Procesada
-                                                                        ? ""
-                                                                        : "table-warning")">
-                    <td>
-                        <strong>@factura.NumeroFactura</strong>
-                    </td>
+                                                                        ? "" : "table-warning")">
+                    <td><strong>@factura.NumeroFactura</strong></td>
                     <td>@factura.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
                     <td>@(factura.Cliente ?? "Consumidor Final")</td>
                     <td>L. @factura.Subtotal.ToString("N2")</td>
@@ -162,13 +158,6 @@
                                         break;
                                 }
                             </td>
-                            <td>
-                                <a href="/Reporte/Detalle/@factura.IdFactura"
-                                   class="btn btn-info btn-sm text-white"
-                                   title="Ver detalle">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                            </td>
                         </tr>
                     }
                 </tbody>
@@ -187,3 +176,56 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        function exportarExcel() {
+            const tabla = document.getElementById('tablaVentas');
+            const wb    = XLSX.utils.book_new();
+            const ws    = XLSX.utils.table_to_sheet(tabla);
+            XLSX.utils.book_append_sheet(wb, ws, 'Ventas');
+            XLSX.writeFile(wb, 'Reporte_Ventas.xlsx');
+        }
+
+        function exportarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape', 'mm', 'a4');
+
+            doc.setFontSize(16);
+            doc.text('Reporte de Ventas - MercaditoUPH', 14, 15);
+            doc.setFontSize(10);
+            doc.text(`Generado: ${new Date().toLocaleDateString('es-HN')}`, 14, 22);
+            doc.text(`Total vendido: L. @totalVendido.ToString("N2")`, 14, 28);
+
+            const tabla   = document.getElementById('tablaVentas');
+            const headers = [];
+            const rows    = [];
+
+            tabla.querySelectorAll('thead tr th').forEach(th => {
+                headers.push(th.innerText.trim());
+            });
+
+            tabla.querySelectorAll('tbody tr').forEach(tr => {
+                const fila = [];
+                tr.querySelectorAll('td').forEach(td => {
+                    fila.push(td.innerText.trim());
+                });
+                rows.push(fila);
+            });
+
+            doc.autoTable({
+                head:       [headers],
+                body:       rows,
+                startY:     34,
+                styles:     { fontSize: 8, cellPadding: 2 },
+                headStyles: { fillColor: [33, 37, 41], textColor: 255 },
+                alternateRowStyles: { fillColor: [245, 245, 245] }
+            });
+
+            doc.save('Reporte_Ventas.pdf');
+        }
+    </script>
+}
