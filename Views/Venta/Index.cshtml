@@ -1,0 +1,162 @@
+﻿@model List<IS_161_Proyecto_Grupo2.Models.Factura>
+@using IS_161_Proyecto_Grupo2.Models
+@{
+    ViewData["Title"] = "Historial de Ventas";
+}
+
+@if (TempData["Exito"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle me-2"></i>@TempData["Exito"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-receipt me-2"></i>Historial de Ventas</h2>
+    <a href="/Venta/Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>Nueva Venta
+    </a>
+</div>
+
+@{
+    var procesadas = Model.Where(f => f.EstatusFactura == EnumEstatusFactura.Procesada).ToList();
+    var canceladas = Model.Where(f => f.EstatusFactura == EnumEstatusFactura.Cancelada).ToList();
+    var totalVendido = procesadas.Sum(f => f.Total);
+}
+
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="card text-center border-primary">
+            <div class="card-body">
+                <h5 class="text-primary">
+                    <i class="bi bi-receipt me-1"></i>Total Facturas
+                </h5>
+                <h3>@Model.Count</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <h5 class="text-success">
+                    <i class="bi bi-check-circle me-1"></i>Procesadas
+                </h5>
+                <h3>@procesadas.Count</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-secondary">
+            <div class="card-body">
+                <h5 class="text-secondary">
+                    <i class="bi bi-x-circle me-1"></i>Canceladas
+                </h5>
+                <h3>@canceladas.Count</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <h5 class="text-success">
+                    <i class="bi bi-cash-stack me-1"></i>Total Vendido
+                </h5>
+                <h3>L. @totalVendido.ToString("N2")</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        @if (!Model.Any())
+        {
+            <div class="alert alert-info text-center">
+                No hay ventas registradas.
+                <a href="/Venta/Create">Registrar primera venta</a>
+            </div>
+        }
+        else
+        {
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>Factura #</th>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Subtotal</th>
+                        <th>IVA</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in Model)
+                    {
+                        <tr class="text-center
+                                    @(f.EstatusFactura == EnumEstatusFactura.Cancelada ? "table-secondary" :
+                                                          f.EstatusFactura == EnumEstatusFactura.Procesada ? "" : "table-warning")">
+
+                    <td><strong>@f.NumeroFactura</strong></td>
+                    <td>@f.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@(f.Cliente ?? "Consumidor Final")</td>
+                    <td>L. @f.Subtotal.ToString("N2")</td>
+                    <td>L. @f.IVA.ToString("N2")</td>
+                    <td><strong>L. @f.Total.ToString("N2")</strong></td>
+                    <td>
+                        @switch (f.EstatusFactura)
+                                {
+                                    case EnumEstatusFactura.Creada:
+                                        <span class="badge bg-info">Creada</span>
+                                        break;
+                                    case EnumEstatusFactura.EnProceso:
+                                        <span class="badge bg-warning text-dark">En Proceso</span>
+                                        break;
+                                    case EnumEstatusFactura.Procesada:
+                                        <span class="badge bg-success">Procesada</span>
+                                        break;
+                                    case EnumEstatusFactura.Cancelada:
+                                        <span class="badge bg-secondary">Cancelada</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                <a href="/Venta/Detalle/@f.IdFactura"
+                                   class="btn btn-info btn-sm text-white"
+                                   title="Ver detalle">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+
+                                @if (f.EstatusFactura != EnumEstatusFactura.Cancelada)
+                                {
+                                    <a href="/Venta/Cancelar/@f.IdFactura"
+                                       class="btn btn-danger btn-sm"
+                                       title="Cancelar factura"
+                                       onclick="return confirm('¿Cancelar la factura @(f.NumeroFactura)? El stock será devuelto.')">
+                                        <i class="bi bi-x-circle"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-danger btn-sm disabled"
+                                            title="Ya cancelada" disabled>
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

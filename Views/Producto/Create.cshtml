@@ -1,0 +1,127 @@
+﻿@model IS_161_Proyecto_Grupo2.Models.Producto
+
+<div class="card shadow col-md-8 mx-auto">
+    <div class="card-header bg-primary text-white">
+        <i class="bi bi-box-seam me-2"></i>Crear Producto
+    </div>
+    <div class="card-body">
+        @using (Html.BeginForm())
+        {
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary(true, "", new { @class = "alert alert-danger" })
+
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Nombre del Producto</label>
+                    @Html.TextBoxFor(m => m.NombreProducto, new { @class = "form-control", placeholder = "Ej: Laptop Gamer" })
+                    @Html.ValidationMessageFor(m => m.NombreProducto, "", new { @class = "text-danger" })
+                </div>
+                <div class="col-md-4 mb-3">
+
+                    @Html.LabelFor(m => m.CodigoProducto, new { @class = "form-label" })
+                    @Html.TextBoxFor(m => m.CodigoProducto, new { @class = "form-control", placeholder = "Ej: LAP-001" })
+                    @Html.ValidationMessageFor(m => m.CodigoProducto, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">Categoría</label>
+                    <select name="IdCategoria" id="selectCategoria" class="form-control"
+                            onchange="cargarSubcategorias(this.value)">
+                        <option value="">Seleccione una categoría...</option>
+                        @foreach (var cat in ViewBag.Categorias ?? new List<IS_161_Proyecto_Grupo2.Models.Categoria>())
+                        {
+                            <option value="@cat.IdCategoria">@cat.Nombre</option>
+                        }
+                    </select>
+                    @Html.ValidationMessageFor(m => m.IdCategoria, "", new { @class = "text-danger" })
+                </div>
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">Subcategoría</label>
+                    <select name="IdSubcategoria" id="selectSubcategoria" class="form-control">
+                        <option value="">Seleccione categoría primero...</option>
+                    </select>
+                    @Html.ValidationMessageFor(m => m.IdSubcategoria, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    @Html.LabelFor(m => m.PrecioCosto, new { @class = "form-label" })
+                    @Html.TextBoxFor(m => m.PrecioCosto, new { @class = "form-control", type = "number", step = "0.01", min = "0.01" })
+                    @Html.ValidationMessageFor(m => m.PrecioCosto, "", new { @class = "text-danger" })
+                </div>
+                <div class="col-md-4 mb-3">
+                    @Html.LabelFor(m => m.PrecioVenta, new { @class = "form-label" })
+                    @Html.TextBoxFor(m => m.PrecioVenta, new { @class = "form-control", type = "number", step = "0.01", min = "0.01" })
+                    @Html.ValidationMessageFor(m => m.PrecioVenta, "", new { @class = "text-danger" })
+                </div>
+                <div class="col-md-4 mb-3">
+
+                    @Html.LabelFor(m => m.Impuesto, new { @class = "form-label" })
+                    @Html.TextBoxFor(m => m.Impuesto, new { @class = "form-control", type = "number", step = "0.01", min = "0", max = "100" })
+                    @Html.ValidationMessageFor(m => m.Impuesto, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+
+                    @Html.LabelFor(m => m.StockMinimo, new { @class = "form-label" })
+                    @Html.TextBoxFor(m => m.StockMinimo, new { @class = "form-control", type = "number", min = "0" })
+                    @Html.ValidationMessageFor(m => m.StockMinimo, "", new { @class = "text-danger" })
+                </div>
+                <div class="col-md-8 mb-3">
+
+                    @Html.LabelFor(m => m.ImagenUrl, new { @class = "form-label" })
+                    @Html.TextBoxFor(m => m.ImagenUrl, new { @class = "form-control", placeholder = "URL de imagen (opcional)" })
+                </div>
+            </div>
+
+            <div class="mb-3">
+
+                <div class="form-check form-switch">
+                    @Html.CheckBoxFor(m => m.Estado, new { @class = "form-check-input" })
+                    <label class="form-check-label">Producto Activo</label>
+                </div>
+            </div>
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-save"></i> Guardar
+                </button>
+                <a href="/Producto" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+
+        function cargarSubcategorias(idCategoria) {
+            const sel = document.getElementById('selectSubcategoria');
+            sel.innerHTML = '<option value="">Cargando...</option>';
+
+            if (!idCategoria) {
+                sel.innerHTML = '<option value="">Seleccione categoría primero...</option>';
+                return;
+            }
+
+            fetch('/Producto/ObtenerSubcategorias?idCategoria=' + idCategoria)
+                .then(r => r.json())
+                .then(data => {
+                    sel.innerHTML = '<option value="">Seleccione una subcategoría...</option>';
+                    data.forEach(s => {
+                        sel.innerHTML += `<option value="${s.idSubcategoria}">${s.nombre}</option>`;
+                    });
+                });
+        }
+    </script>
+}

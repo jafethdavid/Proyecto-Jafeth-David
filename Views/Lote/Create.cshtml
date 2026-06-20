@@ -1,0 +1,79 @@
+﻿@model IS_161_Proyecto_Grupo2.Models.Lote
+
+<div class="card shadow col-md-6 mx-auto">
+    <div class="card-header bg-success text-white">
+        <i class="bi bi-collection me-2"></i>Agregar Lote
+
+        <small class="ms-2 opacity-75">→ @ViewBag.NombreProducto</small>
+    </div>
+    <div class="card-body">
+        @using (Html.BeginForm())
+        {
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary(true, "", new { @class = "alert alert-danger" })
+
+            <input type="hidden" name="idProducto" value="@ViewBag.IdProducto" />
+
+            <div class="mb-3">
+                <label class="form-label">Código de Lote</label>
+                <input type="text"
+                       name="CodigoLote"
+                       class="form-control bg-light"
+                       value="@ViewBag.CodigoLote"
+                       readonly />
+                <small class="text-muted">Generado automáticamente</small>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+
+                    @Html.LabelFor(m => m.Cantidad, new { @class = "form-label" })
+                    @Html.TextBoxFor(m => m.Cantidad,
+                    new { @class = "form-control", type = "number", min = "1" })
+                @Html.ValidationMessageFor(m => m.Cantidad, "", new { @class = "text-danger" })
+            </div>
+            <div class="col-md-6 mb-3">
+
+                @Html.LabelFor(m => m.Unidades, new { @class = "form-label" })
+                <select name="Unidades" class="form-select">
+                    <option value="unidad">Unidad</option>
+                    <option value="caja">Caja</option>
+                    <option value="paquete">Paquete</option>
+                    <option value="docena">Docena</option>
+                    <option value="kg">Kilogramo</option>
+                    <option value="litro">Litro</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            @Html.LabelFor(m => m.FechaVencimiento, new { @class = "form-label" })
+            @Html.TextBoxFor(m => m.FechaVencimiento, "{0:yyyy-MM-dd}",
+                        new { @class = "form-control", type = "date" })
+            @Html.ValidationMessageFor(m => m.FechaVencimiento, "", new { @class = "text-danger" })
+            <small class="text-muted">Dejar vacío si no aplica vencimiento</small>
+        </div>
+
+        <div class="mb-3">
+
+            <div class="form-check form-switch">
+                @Html.CheckBoxFor(m => m.Estatus, new { @class = "form-check-input" })
+                <label class="form-check-label">Lote Activo</label>
+            </div>
+        </div>
+
+        <div class="text-end">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-save"></i> Guardar Lote
+            </button>
+            <a href="/Producto" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i> Cancelar
+            </a>
+        </div>
+                }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

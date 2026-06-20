@@ -1,0 +1,189 @@
+﻿@model List<IS_161_Proyecto_Grupo2.Models.Factura>
+@using IS_161_Proyecto_Grupo2.Models
+@{
+    ViewData["Title"] = "Reporte de Ventas";
+
+    var desdeFiltro = Context.Request.Query["desde"].ToString();
+    var hastaFiltro = Context.Request.Query["hasta"].ToString();
+    var estadoFiltro = Context.Request.Query["estado"].ToString();
+
+    var lista = Model.AsEnumerable();
+
+    if (DateTime.TryParse(desdeFiltro, out var desde))
+        lista = lista.Where(f => f.Fecha >= desde);
+
+    if (DateTime.TryParse(hastaFiltro, out var hasta))
+        lista = lista.Where(f => f.Fecha <= hasta.AddDays(1));
+
+    if (!string.IsNullOrEmpty(estadoFiltro) && int.TryParse(estadoFiltro, out var estado))
+        lista = lista.Where(f => (int)f.EstatusFactura == estado);
+
+    var facturas = lista.ToList();
+    var procesadas = facturas.Where(f => f.EstatusFactura == EnumEstatusFactura.Procesada).ToList();
+    var canceladas = facturas.Where(f => f.EstatusFactura == EnumEstatusFactura.Cancelada).ToList();
+    var totalVendido = procesadas.Sum(f => f.Total);
+}
+
+<h2 class="mb-4">
+    <i class="bi bi-cash-coin me-2"></i>Reporte de Ventas
+</h2>
+
+<div class="card shadow mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Estado</label>
+                <select name="estado" class="form-select">
+                    <option value="" selected="@(estadoFiltro == "")">Todos</option>
+                    <option value="1" selected="@(estadoFiltro == "1")">Creada</option>
+                    <option value="2" selected="@(estadoFiltro == "2")">En Proceso</option>
+                    <option value="3" selected="@(estadoFiltro == "3")">Procesada</option>
+                    <option value="4" selected="@(estadoFiltro == "4")">Cancelada</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Desde</label>
+                <input type="date" name="desde" class="form-control"
+                       value="@desdeFiltro" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Hasta</label>
+                <input type="date" name="hasta" class="form-control"
+                       value="@hastaFiltro" />
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>Filtrar
+                </button>
+                <a href="/Reporte/Ventas" class="btn btn-outline-secondary w-100 mt-1">
+                    <i class="bi bi-x-circle me-1"></i>Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="card border-primary text-center">
+            <div class="card-body">
+                <h5 class="text-primary">
+                    <i class="bi bi-receipt me-1"></i>Total Facturas
+                </h5>
+                <h3>@facturas.Count</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-success text-center">
+            <div class="card-body">
+                <h5 class="text-success">
+                    <i class="bi bi-check-circle me-1"></i>Procesadas
+                </h5>
+                <h3>@procesadas.Count</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-secondary text-center">
+            <div class="card-body">
+                <h5 class="text-secondary">
+                    <i class="bi bi-x-circle me-1"></i>Canceladas
+                </h5>
+                <h3>@canceladas.Count</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-success text-center">
+            <div class="card-body">
+                <h5 class="text-success">
+                    <i class="bi bi-cash-stack me-1"></i>Total Vendido
+                </h5>
+                <h3>L. @totalVendido.ToString("N2")</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        @if (!facturas.Any())
+        {
+            <div class="alert alert-info text-center">
+                No hay ventas que coincidan con los filtros.
+            </div>
+        }
+        else
+        {
+            <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Factura #</th>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Subtotal</th>
+                        <th>IVA</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var factura in facturas)
+                    {
+                        <tr class="@(factura.EstatusFactura == EnumEstatusFactura.Cancelada
+                                                                    ? "table-secondary"
+                                                                    : factura.EstatusFactura == EnumEstatusFactura.Procesada
+                                                                        ? ""
+                                                                        : "table-warning")">
+                    <td>
+                        <strong>@factura.NumeroFactura</strong>
+                    </td>
+                    <td>@factura.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@(factura.Cliente ?? "Consumidor Final")</td>
+                    <td>L. @factura.Subtotal.ToString("N2")</td>
+                    <td>L. @factura.IVA.ToString("N2")</td>
+                    <td><strong>L. @factura.Total.ToString("N2")</strong></td>
+                    <td>
+                        @switch (factura.EstatusFactura)
+                                {
+                                    case EnumEstatusFactura.Creada:
+                                        <span class="badge bg-info">Creada</span>
+                                        break;
+                                    case EnumEstatusFactura.EnProceso:
+                                        <span class="badge bg-warning text-dark">En Proceso</span>
+                                        break;
+                                    case EnumEstatusFactura.Procesada:
+                                        <span class="badge bg-success">Procesada</span>
+                                        break;
+                                    case EnumEstatusFactura.Cancelada:
+                                        <span class="badge bg-secondary">Cancelada</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                <a href="/Reporte/Detalle/@factura.IdFactura"
+                                   class="btn btn-info btn-sm text-white"
+                                   title="Ver detalle">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="row justify-content-end mt-2">
+                <div class="col-md-4">
+                    <table class="table table-borderless text-end">
+                        <tr class="table-dark">
+                            <td class="fw-bold">Total vendido (procesadas):</td>
+                            <td class="fw-bold">L. @totalVendido.ToString("N2")</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+</div>

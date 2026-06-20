@@ -1,0 +1,43 @@
+﻿@model IS_161_Proyecto_Grupo2.Models.Categoria
+
+<div class="card shadow col-md-6 mx-auto">
+    <div class="card-header bg-primary text-white">Crear Categoría</div>
+    <div class="card-body">
+        @using (Html.BeginForm())
+        {
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                @Html.LabelFor(m => m.Nombre, new { @class = "form-label" })
+                @Html.TextBoxFor(m => m.Nombre, new { @class = "form-control" })
+                @Html.ValidationMessageFor(m => m.Nombre, "", new { @class = "text-danger" })
+            </div>
+
+            <div class="mb-3">
+                @Html.LabelFor(m => m.Descripcion, new { @class = "form-label" })
+                @Html.TextAreaFor(m => m.Descripcion, new { @class = "form-control", rows = 2, placeholder = "Descripción opcional" })
+                @Html.ValidationMessageFor(m => m.Descripcion, "", new { @class = "text-danger" })
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check form-switch">
+                    @Html.CheckBoxFor(m => m.Estado, new { @class = "form-check-input" })
+                    <label class="form-check-label">Activa</label>
+                </div>
+            </div>
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-save"></i> Guardar
+                </button>
+                <a href="/Categoria" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,61 @@
+@model IS_161_Proyecto_Grupo2.Models.Subcategoria
+
+<div class="card shadow col-md-6 mx-auto">
+    <div class="card-header bg-primary text-white">Crear Subcategoría</div>
+    <div class="card-body">
+        @using (Html.BeginForm())
+        {
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary(true, "", new { @class = "alert alert-danger" })
+
+            <div class="mb-3">
+                <label class="form-label">Nombre</label>
+                @Html.TextBoxFor(m => m.Nombre, new { @class = "form-control", placeholder = "Nombre de la subcategoría" })
+                @Html.ValidationMessageFor(m => m.Nombre, "", new { @class = "text-danger" })
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Categoría</label>
+
+                <select name="IdCategoria" class="form-control">
+                    <option value="">Seleccione una categoría...</option>
+                    @foreach (var cat in ViewBag.Categorias ?? new List<IS_161_Proyecto_Grupo2.Models.Categoria>())
+                    {
+                        <option value="@cat.IdCategoria"
+                                selected="@(ViewBag.IdCategoriaSeleccionada != null && ViewBag.IdCategoriaSeleccionada == cat.IdCategoria)">
+                            @cat.Nombre
+                        </option>
+                    }
+                </select>
+
+                @Html.ValidationMessageFor(m => m.IdCategoria, "", new { @class = "text-danger" })
+            </div>
+
+            <div class="mb-3">
+                @Html.LabelFor(m => m.Descripcion, new { @class = "form-label" })
+                @Html.TextAreaFor(m => m.Descripcion, new { @class = "form-control", rows = 2, placeholder = "Descripción opcional" })
+                @Html.ValidationMessageFor(m => m.Descripcion, "", new { @class = "text-danger" })
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check form-switch">
+                    @Html.CheckBoxFor(m => m.Estado, new { @class = "form-check-input" })
+                    <label class="form-check-label">Activa</label>
+                </div>
+            </div>
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-save"></i> Guardar
+                </button>
+                <a href="/Categoria" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

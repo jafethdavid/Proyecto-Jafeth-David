@@ -1,0 +1,398 @@
+﻿@{
+    ViewData["Title"] = "Registrar Venta";
+    var mensajeExito = TempData["Exito"] as string;
+    var mensajeError = TempData["Error"] as string;
+    var mensajeWarning = TempData["Warning"] as string;
+}
+
+<h2 class="mb-4">
+    <i class="bi bi-cart-check me-2"></i>Nueva Venta
+</h2>
+
+@if (!string.IsNullOrEmpty(mensajeExito))
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle me-2"></i>@mensajeExito
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(mensajeError))
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle me-2"></i>@mensajeError
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(mensajeWarning))
+{
+    <div class="alert alert-warning alert-dismissible fade show">
+        <i class="bi bi-exclamation-circle me-2"></i>@mensajeWarning
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@using (Html.BeginForm("Create", "Venta", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+
+    <div class="card shadow">
+        <div class="card-body">
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">
+                        <i class="bi bi-person me-1"></i>Cliente (opcional)
+                    </label>
+                    <input type="text" name="Cliente" class="form-control"
+                           placeholder="Consumidor Final" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">
+                        <i class="bi bi-calendar me-1"></i>Fecha
+                    </label>
+                    <input type="text" class="form-control bg-light"
+                           value="@DateTime.Now.ToString("dd/MM/yyyy HH:mm")" readonly />
+                </div>
+            </div>
+
+            <hr />
+
+            <div id="alertaStock"></div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">
+                        <i class="bi bi-box-seam me-1"></i>Producto
+                    </label>
+                    <select id="productoSelect" class="form-select"
+                            onchange="actualizarStockInfo()">
+                        @foreach (var p in ViewBag.Productos)
+                        {
+                            <option value="@p.IdProducto"
+                                    data-precio="@p.PrecioVenta"
+                                    data-stock="@p.StockTotal()"
+                                    data-nombre="@p.NombreProducto">
+                                @p.NombreProducto (Stock: @p.StockTotal())
+                            </option>
+                        }
+                    </select>
+
+                    <small id="stockInfo" class="text-muted mt-1 d-block"></small>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">
+                        <i class="bi bi-123 me-1"></i>Cantidad
+                    </label>
+                    <input type="number" id="cantidad"
+                           class="form-control" value="1" min="1"
+                           oninput="validarCantidad()" />
+
+                    <small id="alertaCantidad" class="text-danger d-none">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Supera el stock disponible
+                    </small>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="button" class="btn btn-primary w-100"
+                            id="btnAgregar" onclick="agregarProducto()">
+                        <i class="bi bi-plus-circle me-1"></i>Agregar
+                    </button>
+                </div>
+            </div>
+
+            <hr />
+
+            <table class="table table-bordered text-center" id="tablaVenta">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unitario</th>
+                        <th>Subtotal</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr id="filaVacia">
+                        <td colspan="5" class="text-muted">
+                            Agrega productos al carrito para comenzar
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="row justify-content-end mt-3">
+                <div class="col-md-5">
+                    <table class="table table-borderless text-end">
+                        <tr>
+                            <td class="fw-bold">Subtotal:</td>
+                            <td>L. <span id="subtotal">0.00</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">IVA (15%):</td>
+                            <td>L. <span id="iva">0.00</span></td>
+                        </tr>
+                        <tr class="table-dark">
+                            <td class="fw-bold fs-5">Total:</td>
+                            <td class="fw-bold fs-5">
+                                L. <span id="total">0.00</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">
+                                <i class="bi bi-cash me-1"></i>Monto Pagado:
+                            </td>
+                            <td>
+
+                                <div class="input-group input-group-sm justify-content-end">
+                                    <span class="input-group-text">L.</span>
+                                    <input type="number"
+                                           id="montoPagadoInput"
+                                           name="MontoPagado"
+                                           class="form-control text-end"
+                                           style="max-width: 130px;"
+                                           step="0.01" min="0"
+                                           placeholder="0.00"
+                                           oninput="calcularCambio()" />
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="filaCambio" class="d-none">
+                            <td class="fw-bold text-success">Cambio:</td>
+                            <td class="fw-bold text-success">
+                                L. <span id="cambio">0.00</span>
+                            </td>
+                        </tr>
+
+                        <tr id="filaPagoInsuficiente" class="d-none">
+                            <td colspan="2">
+                                <small class="text-danger">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    El monto pagado es menor al total
+                                </small>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-2">
+                <a href="/Venta/Index" class="btn btn-secondary"
+                   onclick="return confirmarSalida()">
+                    <i class="bi bi-arrow-left me-1"></i>Ver Facturas
+                </a>
+
+                <button type="submit" class="btn btn-success btn-lg"
+                        id="btnRegistrar" disabled
+                        onclick="return validarFormulario()">
+                    <i class="bi bi-cart-check me-1"></i>Registrar Venta
+                </button>
+            </div>
+
+        </div>
+    </div>
+}
+
+<div id="inputsOcultos"></div>
+
+@section Scripts {
+    <script>
+        const productos = {
+            @foreach (var p in ViewBag.Productos)
+            {
+                    @:@p.IdProducto: { nombre: "@p.NombreProducto", precio: @p.PrecioVenta, stock: @p.StockTotal() },
+            }
+        };
+
+        let carrito = [];
+
+        function actualizarStockInfo() {
+            const select = document.getElementById('productoSelect');
+            const prod   = productos[parseInt(select.value)];
+            if (prod) {
+                document.getElementById('stockInfo').textContent =
+                    `Disponible: ${prod.stock} unidades`;
+                document.getElementById('cantidad').max = prod.stock;
+                validarCantidad();
+            }
+        }
+
+        function validarCantidad() {
+            const select   = document.getElementById('productoSelect');
+            const prod     = productos[parseInt(select.value)];
+            const cantidad = parseInt(document.getElementById('cantidad').value) || 0;
+            const alerta   = document.getElementById('alertaCantidad');
+            const btn      = document.getElementById('btnAgregar');
+
+            if (prod && cantidad > prod.stock) {
+                alerta.classList.remove('d-none');
+                btn.disabled = true;
+            } else {
+                alerta.classList.add('d-none');
+                btn.disabled = false;
+            }
+        }
+
+        function agregarProducto() {
+            const select   = document.getElementById('productoSelect');
+            const idProd   = parseInt(select.value);
+            const cantidad = parseInt(document.getElementById('cantidad').value);
+            const prod     = productos[idProd];
+
+            if (!cantidad || cantidad <= 0) {
+                document.getElementById('alertaStock').innerHTML = `
+                    <div class="alert alert-danger alert-dismissible fade show">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        La cantidad debe ser mayor a 0.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>`;
+                return;
+            }
+
+            if (cantidad > prod.stock) {
+                document.getElementById('alertaStock').innerHTML = `
+                    <div class="alert alert-danger alert-dismissible fade show">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Stock insuficiente. Disponible: ${prod.stock}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>`;
+                return;
+            }
+
+            document.getElementById('alertaStock').innerHTML = '';
+
+            const existente = carrito.find(i => i.idProducto === idProd);
+            if (existente) {
+                const nuevaCantidad = existente.cantidad + cantidad;
+                if (nuevaCantidad > prod.stock) {
+                    document.getElementById('alertaStock').innerHTML = `
+                        <div class="alert alert-danger alert-dismissible fade show">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Total solicitado (${nuevaCantidad}) supera el stock disponible (${prod.stock}).
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>`;
+                    return;
+                }
+                existente.cantidad = nuevaCantidad;
+            } else {
+                carrito.push({
+                    idProducto: idProd,
+                    nombre:     prod.nombre,
+                    precio:     prod.precio,
+                    cantidad:   cantidad
+                });
+            }
+
+            renderCarrito();
+            document.getElementById('cantidad').value = 1;
+        }
+
+        function eliminarLinea(idProducto) {
+            carrito = carrito.filter(i => i.idProducto !== idProducto);
+            renderCarrito();
+        }
+
+        function renderCarrito() {
+            const tbody    = document.querySelector('#tablaVenta tbody');
+            const filaVacia = document.getElementById('filaVacia');
+            let subtotal   = 0;
+            let inputsHTML = '';
+            let filasHTML  = '';
+            let index      = 0;
+
+            carrito.forEach(item => {
+                const lineaSubtotal = item.precio * item.cantidad;
+                subtotal += lineaSubtotal;
+
+                inputsHTML += `
+                    <input type="hidden" name="Detalles[${index}].IdProducto"    value="${item.idProducto}" />
+                    <input type="hidden" name="Detalles[${index}].Cantidad"       value="${item.cantidad}" />
+                    <input type="hidden" name="Detalles[${index}].PrecioUnitario" value="${item.precio}" />
+                    <input type="hidden" name="Detalles[${index}].SubtotalLinea"  value="${lineaSubtotal.toFixed(2)}" />
+                `;
+
+                filasHTML += `
+                    <tr>
+                        <td class="text-start">${item.nombre}</td>
+                        <td>${item.cantidad}</td>
+                        <td>L. ${item.precio.toFixed(2)}</td>
+                        <td>L. ${lineaSubtotal.toFixed(2)}</td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm"
+                                    onclick="eliminarLinea(${item.idProducto})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                index++;
+            });
+
+            if (carrito.length === 0) {
+                tbody.innerHTML = `
+                    <tr id="filaVacia">
+                        <td colspan="5" class="text-muted">
+                            Agrega productos al carrito para comenzar
+                        </td>
+                    </tr>`;
+                document.getElementById('btnRegistrar').disabled = true;
+            } else {
+                tbody.innerHTML = filasHTML;
+                document.getElementById('btnRegistrar').disabled = false;
+            }
+
+            const iva   = subtotal * 0.15;
+            const total = subtotal + iva;
+
+            document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+            document.getElementById('iva').textContent      = iva.toFixed(2);
+            document.getElementById('total').textContent    = total.toFixed(2);
+            document.getElementById('inputsOcultos').innerHTML = inputsHTML;
+
+            calcularCambio();
+        }
+
+        function calcularCambio() {
+            const totalText  = document.getElementById('total').textContent;
+            const total      = parseFloat(totalText) || 0;
+            const pagado     = parseFloat(document.getElementById('montoPagadoInput').value) || 0;
+            const filaCambio = document.getElementById('filaCambio');
+            const filaInsuf  = document.getElementById('filaPagoInsuficiente');
+            const btnReg     = document.getElementById('btnRegistrar');
+
+            if (pagado <= 0 || carrito.length === 0) {
+                filaCambio.classList.add('d-none');
+                filaInsuf.classList.add('d-none');
+                return;
+            }
+
+            if (pagado < total) {
+                filaCambio.classList.add('d-none');
+                filaInsuf.classList.remove('d-none');
+                btnReg.disabled = true;
+            } else {
+                const cambio = pagado - total;
+                document.getElementById('cambio').textContent = cambio.toFixed(2);
+                filaCambio.classList.remove('d-none');
+                filaInsuf.classList.add('d-none');
+                if (carrito.length > 0) btnReg.disabled = false;
+            }
+        }
+
+        function validarFormulario() {
+            if (carrito.length === 0) {
+                alert('Debe agregar al menos un producto al carrito.');
+                return false;
+            }
+            return true;
+        }
+
+        function confirmarSalida() {
+            if (carrito.length > 0) {
+                return confirm('Tienes productos en el carrito. ¿Seguro que deseas salir? Se perderán los cambios.');
+            }
+            return true;
+        }
+
+        window.onload = function() { actualizarStockInfo(); };
+    </script>
+}

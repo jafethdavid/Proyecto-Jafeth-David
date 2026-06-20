@@ -1,0 +1,142 @@
+﻿@model List<IS_161_Proyecto_Grupo2.Models.Categoria>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Lista de Categorías</h2>
+    <a href="/Categoria/Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nueva Categoría
+    </a>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        @if (!Model.Any())
+        {
+            <div class="alert alert-info text-center">
+                No hay categorías registradas.
+                <a href="/Categoria/Create">Crear la primera</a>
+            </div>
+        }
+        else
+        {
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Estado</th>
+                        <th>Subcategorías</th>
+                        <th>Agregar Sub.</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr class="text-center @(!item.Estado ? "table-secondary" : "")">
+                            <td>@item.IdCategoria</td>
+                            <td>@item.Nombre</td>
+                            <td class="text-start">
+                                <small class="text-muted">
+                                    @(item.Descripcion ?? "-")
+                                </small>
+                            </td>
+                            <td>
+                                @if (item.Estado)
+                                {
+                                    <span class="badge bg-success">Activa</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Inactiva</span>
+                                }
+                            </td>
+                            <td class="text-start">
+                                @if (item.Subcategorias != null && item.Subcategorias.Any())
+                                {
+                                    <ul class="list-unstyled mb-0">
+                                        @foreach (var s in item.Subcategorias)
+                                        {
+                                            <li>
+                                                <span class="badge @(s.Estado ? "bg-secondary" : "bg-light text-muted")">
+                                                    @s.Nombre
+                                                </span>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.Estado)
+                                {
+                                    <a href="/Subcategoria/Create?idCategoria=@item.IdCategoria"
+                                       class="btn btn-sm btn-success"
+                                       title="Agregar subcategoría">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-success disabled"
+                                            title="Categoría inactiva" disabled>
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                }
+                            </td>
+                            <td>
+                                <a href="/Categoria/Edit/@item.IdCategoria"
+                                   class="btn btn-warning btn-sm" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+
+                                @if (!item.Estado)
+                                {
+                                    <button class="btn btn-danger btn-sm disabled"
+                                            title="Ya está inactiva" disabled>
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                                else if (item.Subcategorias != null &&
+                                item.Subcategorias.Any(s => s.Estado))
+                                {
+                                    <a href="/Categoria/Delete/@item.IdCategoria"
+                                       class="btn btn-danger btn-sm" title="Desactivar"
+                                       onclick="return confirm('Esta categoría tiene subcategorías activas. ¿Desactivar de todas formas?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="/Categoria/Delete/@item.IdCategoria"
+                                       class="btn btn-danger btn-sm" title="Desactivar"
+                                       onclick="return confirm('¿Desactivar la categoría @(item.Nombre)?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

@@ -1,0 +1,230 @@
+﻿@model List<IS_161_Proyecto_Grupo2.Models.MovimientoInventario>
+@using IS_161_Proyecto_Grupo2.Models
+@{
+    ViewData["Title"] = "Movimientos de Inventario";
+
+    var tipoFiltro = Context.Request.Query["tipo"].ToString();
+    var desdeFiltro = Context.Request.Query["desde"].ToString();
+    var hastaFiltro = Context.Request.Query["hasta"].ToString();
+
+    var lista = Model.AsEnumerable();
+
+    if (tipoFiltro == "1")
+        lista = lista.Where(m => m.TipoMovimiento == EnumTipoMovimiento.Entrada);
+    else if (tipoFiltro == "2")
+        lista = lista.Where(m => m.TipoMovimiento == EnumTipoMovimiento.Salida);
+
+    if (DateTime.TryParse(desdeFiltro, out var desde))
+        lista = lista.Where(m => m.FechaMovimiento >= desde);
+
+    if (DateTime.TryParse(hastaFiltro, out var hasta))
+        lista = lista.Where(m => m.FechaMovimiento <= hasta.AddDays(1));
+
+    var movimientos = lista.ToList();
+
+    var totalEntradas = movimientos
+        .Where(m => m.TipoMovimiento == EnumTipoMovimiento.Entrada)
+        .Sum(m => m.CantidadDisponible);
+    var totalSalidas = movimientos
+        .Where(m => m.TipoMovimiento == EnumTipoMovimiento.Salida)
+        .Sum(m => m.CantidadDisponible);
+}
+
+<h2 class="mb-4">
+    <i class="bi bi-arrow-left-right me-2"></i>Movimientos de Inventario
+</h2>
+
+<div class="card shadow mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Tipo de Movimiento</label>
+                <select name="tipo" class="form-select">
+                    <option value="" selected="@(tipoFiltro == "")">Todos</option>
+                    <option value="1" selected="@(tipoFiltro == "1")">Entradas</option>
+                    <option value="2" selected="@(tipoFiltro == "2")">Salidas</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Desde</label>
+                <input type="date" name="desde" class="form-control"
+                       value="@desdeFiltro" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Hasta</label>
+                <input type="date" name="hasta" class="form-control"
+                       value="@hastaFiltro" />
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>Filtrar
+                </button>
+                <a href="/Reporte/Movimientos"
+                   class="btn btn-outline-secondary w-100 mt-1">
+                    <i class="bi bi-x-circle me-1"></i>Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="card border-success text-center">
+            <div class="card-body">
+                <h5 class="text-success">
+                    <i class="bi bi-arrow-down-circle me-1"></i>Entradas
+                </h5>
+                <h3>@movimientos.Count(m => m.TipoMovimiento == EnumTipoMovimiento.Entrada)</h3>
+
+                <small class="text-muted">@totalEntradas unidades</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-danger text-center">
+            <div class="card-body">
+                <h5 class="text-danger">
+                    <i class="bi bi-arrow-up-circle me-1"></i>Salidas
+                </h5>
+                <h3>@movimientos.Count(m => m.TipoMovimiento == EnumTipoMovimiento.Salida)</h3>
+
+                <small class="text-muted">@totalSalidas unidades</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-primary text-center">
+            <div class="card-body">
+                <h5 class="text-primary">
+                    <i class="bi bi-list-ul me-1"></i>Total Movimientos
+                </h5>
+                <h3>@movimientos.Count</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-info text-center">
+            <div class="card-body">
+                <h5 class="text-info">
+                    <i class="bi bi-calculator me-1"></i>Balance Neto
+                </h5>
+                @{
+                    int balance = totalEntradas - totalSalidas;
+                }
+                <h3 class="@(balance >= 0 ? "text-success" : "text-danger")">
+                    @(balance >= 0 ? "+" : "")@balance
+                </h3>
+                <small class="text-muted">unidades</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        @if (!movimientos.Any())
+        {
+            <div class="alert alert-info text-center">
+                No hay movimientos que coincidan con los filtros.
+            </div>
+        }
+        else
+        {
+            <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Producto</th>
+                        <th>Código Lote</th>
+                        <th>Cantidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in movimientos)
+                    {
+                        <tr class="@(item.TipoMovimiento == EnumTipoMovimiento.Entrada
+                                                                    ? "table-success" : "table-danger")">
+                    <td>@item.IdMovimiento</td>
+                    <td>@item.FechaMovimiento.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>
+                        @if (item.TipoMovimiento == EnumTipoMovimiento.Entrada)
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-arrow-down-circle me-1"></i>Entrada
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-arrow-up-circle me-1"></i>Salida
+                                    </span>
+                                }
+                            </td>
+                            <td class="text-start">
+                                @(item.NombreProducto ?? "—")
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.CodigoLote))
+                                {
+                                    <span class="badge bg-dark">@item.CodigoLote</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+
+                                @if (item.TipoMovimiento == EnumTipoMovimiento.Entrada)
+                                {
+                                    <span class="text-success fw-bold">
+                                        +@item.CantidadDisponible
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger fw-bold">
+                                        -@item.CantidadDisponible
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="row justify-content-end mt-2">
+                <div class="col-md-5">
+                    <table class="table table-borderless text-end">
+                        <tr>
+                            <td class="text-success fw-bold">
+                                <i class="bi bi-arrow-down-circle me-1"></i>
+                                Total unidades ingresadas:
+                            </td>
+                            <td class="text-success fw-bold">+@totalEntradas</td>
+                        </tr>
+                        <tr>
+                            <td class="text-danger fw-bold">
+                                <i class="bi bi-arrow-up-circle me-1"></i>
+                                Total unidades salidas:
+                            </td>
+                            <td class="text-danger fw-bold">-@totalSalidas</td>
+                        </tr>
+                        <tr class="table-dark">
+                            <td class="fw-bold">Balance neto:</td>
+                            <td class="fw-bold @(totalEntradas - totalSalidas >= 0
+                                                                                    ? "text-success" : "text-danger")">
+                            @(totalEntradas - totalSalidas >= 0 ? "+" : "")
+                            @(totalEntradas - totalSalidas)
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+                }
+    </div>
+</div>

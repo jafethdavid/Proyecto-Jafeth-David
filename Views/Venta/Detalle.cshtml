@@ -1,0 +1,175 @@
+﻿@model IS_161_Proyecto_Grupo2.Models.Factura
+@using IS_161_Proyecto_Grupo2.Models
+@{
+    ViewData["Title"] = "Detalle de Factura";
+    int linea = 1;
+}
+
+@if (TempData["Exito"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle me-2"></i>@TempData["Exito"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="bi bi-receipt me-2"></i>@Model.NumeroFactura
+    </h2>
+    <div class="d-flex gap-2">
+        <a href="/Venta/Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Volver
+        </a>
+        <button onclick="window.print()" class="btn btn-primary">
+            <i class="bi bi-printer me-1"></i>Imprimir
+        </button>
+        @if (Model.EstatusFactura != EnumEstatusFactura.Cancelada)
+        {
+            <a href="/Venta/Cancelar/@Model.IdFactura"
+               class="btn btn-danger"
+               onclick="return confirm('¿Cancelar @(Model.NumeroFactura)? El stock será devuelto.')">
+                <i class="bi bi-x-circle me-1"></i>Cancelar Factura
+            </a>
+        }
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <table class="table table-borderless table-sm">
+                    <tr>
+                        <td class="fw-bold text-muted">Factura #:</td>
+                        <td><strong>@Model.NumeroFactura</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold text-muted">Fecha:</td>
+                        <td>@Model.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold text-muted">Cliente:</td>
+                        <td>@(Model.Cliente ?? "Consumidor Final")</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6 text-end">
+                <h5>
+                    Estado:
+                    @switch (Model.EstatusFactura)
+                    {
+                        case EnumEstatusFactura.Creada:
+                            <span class="badge bg-info fs-6">Creada</span>
+                            break;
+                        case EnumEstatusFactura.EnProceso:
+                            <span class="badge bg-warning text-dark fs-6">En Proceso</span>
+                            break;
+                        case EnumEstatusFactura.Procesada:
+                            <span class="badge bg-success fs-6">Procesada</span>
+                            break;
+                        case EnumEstatusFactura.Cancelada:
+                            <span class="badge bg-secondary fs-6">Cancelada</span>
+                            break;
+                    }
+                </h5>
+                @if (Model.EstatusFactura == EnumEstatusFactura.Cancelada)
+                {
+                    <div class="alert alert-secondary mt-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Esta factura fue cancelada y el stock fue devuelto.
+                    </div>
+                }
+            </div>
+        </div>
+
+        <hr />
+
+        <h5 class="mb-3">
+            <i class="bi bi-cart me-2"></i>Productos
+        </h5>
+
+        @if (Model.Detalles == null || !Model.Detalles.Any())
+        {
+            <div class="alert alert-info">No hay detalles registrados.</div>
+        }
+        else
+        {
+            <table class="table table-bordered align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unitario</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var det in Model.Detalles)
+                    {
+                        <tr>
+                            <td>@linea</td>
+                            <td class="text-start">@det.NombreProducto</td>
+                            <td>@det.Cantidad</td>
+                            <td>L. @det.PrecioUnitario.ToString("N2")</td>
+                            <td>L. @det.SubtotalLinea.ToString("N2")</td>
+                        </tr>
+                        linea++;
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div class="row justify-content-end mt-3">
+            <div class="col-md-4">
+                <table class="table table-borderless text-end">
+                    <tr>
+                        <td class="fw-bold text-muted">Subtotal:</td>
+                        <td>L. @Model.Subtotal.ToString("N2")</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold text-muted">IVA (15%):</td>
+                        <td>L. @Model.IVA.ToString("N2")</td>
+                    </tr>
+                    <tr class="table-dark">
+                        <td class="fw-bold fs-5">Total:</td>
+                        <td class="fw-bold fs-5">
+                            L. @Model.Total.ToString("N2")
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <hr />
+
+        <div class="d-flex justify-content-between">
+            <a href="/Venta/Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Volver al historial
+            </a>
+            <div class="d-flex gap-2">
+                <button onclick="window.print()" class="btn btn-primary">
+                    <i class="bi bi-printer me-1"></i>Imprimir
+                </button>
+                @if (Model.EstatusFactura != EnumEstatusFactura.Cancelada)
+                {
+                    <a href="/Venta/Cancelar/@Model.IdFactura"
+                       class="btn btn-danger"
+                       onclick="return confirm('¿Cancelar @(Model.NumeroFactura)? El stock será devuelto.')">
+                        <i class="bi bi-x-circle me-1"></i>Cancelar Factura
+                    </a>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
